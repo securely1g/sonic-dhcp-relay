@@ -11,6 +11,8 @@ MKDIR := mkdir
 MV := mv
 FIND := find
 GCOVR := gcovr
+PYTHON ?= python3
+REDIS_SERVER ?= redis-server
 override LDLIBS += -levent -lhiredis -lswsscommon -pthread -lboost_thread -lboost_system
 override CPPFLAGS += -Wall -std=c++17 -fPIE -I/usr/include/swss
 override CPPFLAGS += -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)"
@@ -49,9 +51,12 @@ $(DHCP6RELAY_TEST_TARGET): $(TEST_OBJS)
 	$(CXX) $(LDFLAGS) $^ $(LDLIBS) $(LDLIBS_TEST) -o $@
 
 test: $(DHCP6RELAY_TEST_TARGET)
-	sudo ASAN_OPTIONS=detect_leaks=0 ./$(DHCP6RELAY_TEST_TARGET) --gtest_output=xml:$(DHCP6RELAY_TEST_TARGET)-test-result.xml || true
+	set -e
+	test_status=0
+	sudo ASAN_OPTIONS=detect_leaks=0 $(PYTHON) ./test/run_tests.py --redis-server "$(REDIS_SERVER)" -- ./$(DHCP6RELAY_TEST_TARGET) --gtest_output=xml:$(DHCP6RELAY_TEST_TARGET)-test-result.xml || test_status=$$?
 	$(GCOVR) -r ./ --html --html-details -o $(DHCP6RELAY_TEST_TARGET)-code-coverage.html
 	$(GCOVR) -r ./ --xml-pretty -o $(DHCP6RELAY_TEST_TARGET)-code-coverage.xml
+	exit $$test_status
 
 install: $(DHCP6RELAY_TARGET)
 	install -D $(DHCP6RELAY_TARGET) $(DESTDIR)/usr/sbin/$(notdir $(DHCP6RELAY_TARGET))
