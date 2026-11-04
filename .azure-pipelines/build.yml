@@ -23,6 +23,9 @@ jobs:
   - ${{ if and(eq(parameters.arch, 'amd64'), parameters.codeCoverage) }}:
     - script: |
         wget https://packages.microsoft.com/config/ubuntu/22.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
+        # Verify packages-microsoft-prod 1.0-ubuntu22.04.1 before installing it.
+        printf '%s  %s\n' \
+          0d335c06ceb3227e330a36a7135997207843c726e42ec341e34a3825f151213b packages-microsoft-prod.deb | sha256sum --check || exit 1
         sudo dpkg -i packages-microsoft-prod.deb
         rm packages-microsoft-prod.deb
         sudo apt-get update
