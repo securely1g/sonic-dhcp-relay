@@ -1,0 +1,21 @@
+load("@rules_foreign_cc//foreign_cc:defs.bzl", "cmake")
+package(default_visibility = ["//visibility:public"])
+filegroup(name = "source", srcs = glob(["**"], exclude = ["BUILD.bazel"]))
+cmake(
+    name = "pcapplusplus",
+    features = ["-sanitize_pwd"],
+    copts = ["-Wno-error=unused-parameter", "-Wno-error=type-limits"],
+    build_args = ["-j4"],
+    lib_source = ":source",
+    cache_entries = {
+        "PCAPPP_BUILD_EXAMPLES": "OFF",
+        "PCAPPP_BUILD_TESTS": "OFF",
+        "PCAPPP_BUILD_TUTORIALS": "OFF",
+        "BUILD_SHARED_LIBS": "OFF",
+        "CMAKE_POSITION_INDEPENDENT_CODE": "ON",
+        "PCAP_INCLUDE_DIR": "$$EXT_BUILD_DEPS$$/include",
+        "PCAP_LIBRARY": "$$EXT_BUILD_DEPS$$/lib/libpcap.a",
+    },
+    out_static_libs = ["libPcap++.a", "libPacket++.a", "libCommon++.a"],
+    deps = ["@libpcap//:libpcap"],
+)
