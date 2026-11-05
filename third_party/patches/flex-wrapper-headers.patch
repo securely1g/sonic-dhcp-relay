@@ -1,0 +1,12 @@
+--- a/BUILD.bazel
++++ b/BUILD.bazel
+@@ -1,6 +1,9 @@
+ load("@bazel_skylib//rules:copy_file.bzl", "copy_file")
+ load("@rules_cc//cc:cc_library.bzl", "cc_library")
+ load(":autoconf.bzl", "autoconf_targets")
++
++# Gnulib wrappers must precede system headers in this execution-tool package.
++package(features = ["-external_include_paths"])
+
+ # The targets of configure.ac and the Makefile.am files, declared by the generated
+ # autoconf.bzl beside this file; this file is hand-written and kept as it is.  A target
