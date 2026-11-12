@@ -30,6 +30,9 @@ register_toolchains("@rust_toolchains//:all", dev_dependency = True)
 
 # Existing source module used by installed-runtime validation.
 bazel_dep(name = "libyang", version = "3.12.2.sonic.6")
+# Direct runtime TAR references require a root-visible repository mapping.
+# Match Common's selected source owner; do not substitute distro libnl.
+bazel_dep(name = "libnl3", version = "3.7.0.sonic.7")
 
 # apt.lock.json is the canonical reviewed acceptance contract, not an input
 # consumed by the facts-mode resolver. validate-apt-lock.py forces fresh

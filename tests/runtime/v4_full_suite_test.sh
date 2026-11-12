@@ -11,6 +11,9 @@ done < "$1"
 cp "${2:-dhcp4relay/relay_test}" "$work/tests/relay_test"
 cp "$4" "$work/tests/test/database_config.json"
 chmod -R a+rX "$work"
+source tests/runtime/check_loader_closure.sh
+check_loader_closure "$work/root" "$work/tests/relay_test" \
+  debian:trixie-20260918@sha256:9cc080028c43b27d2074d63a5f9caf7166d731494965616c1a6d2827a004585c
 set +e
 docker run --rm --network none --read-only --user 65534:65534 --cap-drop ALL --security-opt no-new-privileges --tmpfs /tmp:rw,nosuid,nodev,size=128m -v "$work/root:/rootfs:ro" -v "$work/tests:/tests:ro" -w /tests -e GTEST_FILTER="${3:-*}" debian:trixie-20260918@sha256:9cc080028c43b27d2074d63a5f9caf7166d731494965616c1a6d2827a004585c /bin/sh -c '
 /rootfs/usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2 --library-path /rootfs/usr/lib/x86_64-linux-gnu /tests/relay_test --gtest_output=xml:/tmp/v4.xml

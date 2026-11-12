@@ -29,15 +29,20 @@ the legacy gitlink is unchanged.
 ## Bounded validation
 
 Inspect configured outputs/actions before builds, including transitive edges;
-never use wildcard builds/tests without inspecting them. Example explicit targets:
+never use wildcard builds/tests without inspecting them. Successful configured-graph
+validation requires the owner-supported execution host platform
+`--host_platform=@sonic_build_infra//platforms:x86_64_trixie`, in addition to the
+target platform in `.bazelrc`. The default-host libyang execution-configuration
+selector failure remains unresolved; these results do not establish default-host
+success. Use this flag for configured queries, builds, and tests, as below:
 
 ```sh
 bazel mod graph
-bazel cquery 'set(//dhcp6relay:sender_test //dhcp4relay:pcap_patch_test //dhcp4relay:runtime //dhcp6relay:runtime)' --output=files
-bazel aquery 'deps(set(//dhcp6relay:sender_test //dhcp4relay:pcap_patch_test //dhcp4relay:runtime //dhcp6relay:runtime))' --output=jsonproto
-bazel test --jobs=4 --local_resources=memory=8192 --nocache_test_results \
+bazel cquery --host_platform=@sonic_build_infra//platforms:x86_64_trixie 'set(//dhcp6relay:sender_test //dhcp4relay:pcap_patch_test //dhcp4relay:runtime //dhcp6relay:runtime)' --output=files
+bazel aquery --host_platform=@sonic_build_infra//platforms:x86_64_trixie 'deps(set(//dhcp6relay:sender_test //dhcp4relay:pcap_patch_test //dhcp4relay:runtime //dhcp6relay:runtime))' --output=jsonproto
+bazel test --host_platform=@sonic_build_infra//platforms:x86_64_trixie --jobs=4 --local_resources=memory=8192 --nocache_test_results \
   //dhcp6relay:sender_test //dhcp4relay:pcap_patch_test
-bazel build --jobs=4 --local_resources=memory=8192 \
+bazel build --host_platform=@sonic_build_infra//platforms:x86_64_trixie --jobs=4 --local_resources=memory=8192 \
   //dhcp4relay:runtime //dhcp4relay:runtime.debug_symbols \
   //dhcp6relay:runtime //dhcp6relay:runtime.debug_symbols
 ```
@@ -47,7 +52,27 @@ loader/libraries on a differing host. The full original suite runners
 `//tests/runtime:v4_full_suite_test` and `:v6_full_suite_test` extract declared APT
 and source TAR payloads and run in the digest-pinned Debian container without
 network, capabilities, privilege, or writable source mounts. Docker is an explicit
-local test prerequisite. `:v4_negative_control_test` is manual and expected to fail.
+local test prerequisite. Both runners first ask the target loader for its complete
+transitive dependency list for the relay ELF and reject missing libraries or
+successful fallback to container libraries outside `/rootfs`. This preflight does
+not audit Python/Redis ELF closure or modules loaded later with `dlopen`; those
+remain additional runtime-acceptance checks. The declared closure includes Common's
+source-built libnl core/route/nf TARs and libyang's owner-selected PCRE2/xxhash APT
+payload aliases; it does not change Common to static linkage. Boost thread/system
+payloads use the same already-declared development-package closure as compilation.
+No APT versions/checksums are hand-edited: the fresh-resolution gate below remains
+required, including libyang's `libyang_system` dependency set in its new receipt.
+`:v4_negative_control_test` is manual and expected to fail.
+
+The loader-output gate has bounded, Docker-free positive/missing/ambient controls:
+
+```sh
+python3 -m unittest discover -s tests/runtime -p '*_test.py' -v
+```
+
+These controls are not ELF execution. Native acceptance must additionally omit
+one measured `DT_NEEDED` provider from a fresh extracted runtime and observe a
+loader/preflight failure, then restore it and rerun both complete suites.
 The test-only seams remove raw-socket privilege requirements without replacing
 production source; kernel BPF checks remain real. These are unit-suite checks,
 not live forwarding or full dual-ToR acceptance.
@@ -74,8 +99,10 @@ verifies cleanup, failure propagation, and fresh state; it produces no DEBs.
 ### Fresh APT acceptance gate
 
 `apt.lock.json` is the frozen reviewed **acceptance contract**, not an input
-consumed by the facts-mode resolver. It has not been refreshed for this updated
-dependency graph. Before claiming current graph acceptance, run:
+consumed by the facts-mode resolver. It was refreshed byte-for-byte from successful
+authoritative resolution of this dependency graph (1122 packages, including
+`libnl_system` and `libyang_system`). Retain a fresh comparison receipt for the
+configured graph; the frozen contract alone is not fresh-resolution evidence. Run:
 
 ```sh
 python3 tools/bazel/validate-apt-lock.py --evidence-dir <new-receipt-dir> -- <configured-bazel-launcher>
