@@ -72,3 +72,19 @@ sh_test(
     tags = ["local", "requires-docker", "manual"],
     size = "medium",
 )
+
+# Keep the real owner cc_test binaries/assertions; adapt only their target runtime.
+[
+    sh_test(
+        name = name,
+        srcs = ["focused_test.sh"],
+        args = ["$(rootpath :v6_archives)", "$(rootpath %s)" % binary],
+        data = ["check_loader_closure.sh", ":v6_archives", binary],
+        tags = ["local", "requires-docker"],
+        size = "small",
+    )
+    for name, binary in [
+        ("sender_test", "//dhcp6relay:sender_test"),
+        ("pcap_patch_test", "//dhcp4relay:pcap_patch_test"),
+    ]
+]

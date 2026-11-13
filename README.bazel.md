@@ -124,3 +124,34 @@ current-graph source builds, matched symbols, full suites, installed image closu
 ARM, live forwarding, and a complete legacy image build require separate receipts.
 No infrastructure adapter, Common PR45 duplicate, platform-common migration,
 monitor source, registry publication, or automatic CI policy change belongs here.
+
+## Source PR CI (AMD64)
+
+`.github/workflows/bazel.yml` runs for every PR, without path/Draft filters,
+checking out the actual head with a read-only token and no persisted credentials.
+It uses Ubuntu 24.04 AMD64, Python 3.12.3, checksummed Bazel 8.5.1 and the existing
+digest-pinned trixie test runtime. No secrets, shared caches, self-hosted runner,
+`pull_request_target`, new package generation, or repository-settings changes
+are required. CodeQL and Semgrep remain independent and unchanged.
+
+`tools/bazel/ci.sh` is the reproducible entry point. Set `BAZEL` to the verified
+binary, `CI_SOURCE_SHA` to `git rev-parse HEAD`, and `CI_STATE`/`CI_EVIDENCE` to new
+absolute directories. It explicitly selects the supported trixie host **and**
+target platforms, resolves/compares the APT contract afresh (never rewrites it),
+audits the configured transitive graph for DEB producers before execution,
+builds both runtime/debug TARs and both metadata targets, then executes all four
+runtime test targets with `--nocache_test_results`. Focused adapters execute the
+unchanged owner sender/classifier binaries with the same declared loader and
+capability-free, network-disabled, read-only Docker runtime as the original
+suites. XML must show at least 3/2/62/47 completed cases respectively, no skips
+or disabled cases; additions are allowed, silent coverage loss is not.
+
+CPU/action concurrency is bounded to two jobs, an 8 GiB scheduling budget and
+serial nested foreign builds. The artifact includes selected output files and
+checksums, source commit/tree, tool/config hashes, fresh resolution lock, module
+graph, configured actions, BEP and JUnit/test logs, including available failure
+receipts. No caches or environment/credential dumps are uploaded. An actual
+hosted pass (or an explicit maintainer fork-run approval) remains necessary;
+local command-equivalent validation alone is not a hosted-green claim. This
+workflow makes no ARM, default-host, native global-install bootstrap, image,
+or live-forwarding claim.
