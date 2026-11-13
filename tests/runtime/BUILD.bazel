@@ -1,0 +1,90 @@
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
+load(":runtime_manifest.bzl", "runtime_manifest")
+# External Debian runtime payloads only. Common/libyang remain source outputs.
+filegroup(
+    name = "apt_payloads",
+    srcs = [
+        "@trixie//redis-server:redis-server",
+        "@trixie//python3:python3",
+        "@trixie//libevent-dev:libevent-dev",
+        "@trixie//libhiredis1.1.0:libhiredis1.1.0",
+        "@trixie//libzmq5:libzmq5",
+        "@trixie//libuuid1:libuuid1",
+        "@trixie//libboost-serialization1.83.0:libboost-serialization1.83.0",
+        # Preserve the selected link inputs even if --as-needed drops a DSO.
+        "@trixie//libboost-thread-dev:libboost-thread-dev",
+        "@trixie//libboost-system-dev:libboost-system-dev",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+runtime_manifest(
+    name = "v6_archives",
+    archives = [
+        ":apt_payloads",
+        "@trixie//libasan8:libasan8",
+        "@sonic_swss_common//dist:libswsscommon_pkg",
+        "@libyang//:libyang_pkg",
+        # Common dynamically owns these three source-built libnl libraries.
+        # route -> core; nf -> route + core; neither pulls in genl or cli.
+        "@libnl3//:libnl-3_pkg",
+        "@libnl3//:libnl-route-3_pkg",
+        "@libnl3//:libnl-nf-3_pkg",
+        # Reuse libyang's selected APT foundations (including xxhash), not host
+        # libraries or a separately guessed package/version in the relay lock.
+        "@libyang//:sys_libpcre2-8-0_data",
+        "@libyang//:sys_libxxhash0_data",
+    ],
+)
+sh_test(
+    name = "v6_full_suite_test",
+    srcs = ["full_suite_test.sh"],
+    args = ["$(rootpath :v6_archives)", "$(rootpath //dhcp6relay:relay_test)", "$(rootpath //dhcp6relay:test/run_tests.py)", "$(rootpath //dhcp6relay:test/database_config.json)"],
+    data = [
+        "check_loader_closure.sh",
+        ":v6_archives",
+        "//dhcp6relay:relay_test",
+        "//dhcp6relay:test/run_tests.py",
+        "//dhcp6relay:test/database_config.json",
+    ],
+    # Docker uses host bind mounts: this is an explicit local integration test,
+    # never a substitute for sandboxed native compilation.
+    tags = ["local", "requires-docker"],
+    size = "medium",
+)
+
+# v4 uses the same declared loader/runtime closure, but original database mocks
+# instead of the v6 Redis fixture. Keep an independently named runner.
+sh_test(
+    name = "v4_full_suite_test",
+    srcs = ["v4_full_suite_test.sh"],
+    args = ["$(rootpath :v6_archives)", "$(rootpath //dhcp4relay:relay_test)", "*", "$(rootpath //dhcp4relay:test/database_config.json)"],
+    data = ["check_loader_closure.sh", ":v6_archives", "//dhcp4relay:relay_test", "//dhcp4relay:test/database_config.json"],
+    tags = ["local", "requires-docker"],
+    size = "medium",
+)
+
+sh_test(
+    name = "v4_negative_control_test",
+    srcs = ["v4_full_suite_test.sh"],
+    args = ["$(rootpath :v6_archives)", "$(rootpath //dhcp4relay:relay_test_negative)", "DHCPRelayTest.bootp_pad_extends_short_packet", "$(rootpath //dhcp4relay:test/database_config.json)"],
+    data = ["check_loader_closure.sh", ":v6_archives", "//dhcp4relay:relay_test_negative", "//dhcp4relay:test/database_config.json"],
+    tags = ["local", "requires-docker", "manual"],
+    size = "medium",
+)
+
+# Keep the real owner cc_test binaries/assertions; adapt only their target runtime.
+[
+    sh_test(
+        name = name,
+        srcs = ["focused_test.sh"],
+        args = ["$(rootpath :v6_archives)", "$(rootpath %s)" % binary],
+        data = ["check_loader_closure.sh", ":v6_archives", binary],
+        tags = ["local", "requires-docker"],
+        size = "small",
+    )
+    for name, binary in [
+        ("sender_test", "//dhcp6relay:sender_test"),
+        ("pcap_patch_test", "//dhcp4relay:pcap_patch_test"),
+    ]
+]

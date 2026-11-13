@@ -1,0 +1,555 @@
+{
+  "dependency_sets": {
+    "relay_metadata_debian": {
+      "sets": {
+        "amd64": {
+          "/trixie/libc6:amd64": "2.41-12+deb13u3",
+          "/trixie/libevent-2.1-7t64:amd64": "2.1.12-stable-10+b1",
+          "/trixie/libevent-pthreads-2.1-7t64:amd64": "2.1.12-stable-10+b1",
+          "/trixie/libexplain51t64:amd64": "1.4.D001-16",
+          "/trixie/libgcc-s1:amd64": "14.2.0-19",
+          "/trixie/libhiredis1.1.0:amd64": "1.2.0-6+b3",
+          "/trixie/libstdc++6:amd64": "14.2.0-19"
+        }
+      }
+    }
+  },
+  "facts": {
+    "trixie-security/main/amd64/Contents/https://snapshot.debian.org/archive/debian-security/20260726T121236Z": "sha256-9h8nvRfeVGJkqlj0DzqvqscCHg72nBf2sbTNdmSgN+w=",
+    "trixie-security/main/amd64/Packages/https://snapshot.debian.org/archive/debian-security/20260726T121236Z": "sha256-J4u+nBRPQN26KvOcnRUTSd4jdUK5DovsYX9j7MunTLo=",
+    "trixie-security/main/arm64/Contents/https://snapshot.debian.org/archive/debian-security/20260726T121236Z": "sha256-9h8nvRfeVGJkqlj0DzqvqscCHg72nBf2sbTNdmSgN+w=",
+    "trixie-security/main/arm64/Packages/https://snapshot.debian.org/archive/debian-security/20260726T121236Z": "sha256-FalCR0feEcC9bEFNOKMvmVVEuuvagkVY4rLauAt0DCo=",
+    "trixie-security/main/armhf/Contents/https://snapshot.debian.org/archive/debian-security/20260726T121236Z": "sha256-9h8nvRfeVGJkqlj0DzqvqscCHg72nBf2sbTNdmSgN+w=",
+    "trixie-security/main/armhf/Packages/https://snapshot.debian.org/archive/debian-security/20260726T121236Z": "sha256-BhNi/vcQ8YEDKL3bo7nEnVgoOFEqc3aANwix5K3LVLk=",
+    "trixie-updates/main/amd64/Contents/https://snapshot.debian.org/archive/debian/20260727T143429Z": "sha256-2xYdCcacT7thCckLlK30jiKx9FmV7OU0hZQqp2P3DFo=",
+    "trixie-updates/main/amd64/Packages/https://snapshot.debian.org/archive/debian/20260727T143429Z": "sha256-EAEss4TcJhNYbXs9OR2SpWN8n6o2AXI5c58qYQmg1F8=",
+    "trixie-updates/main/arm64/Contents/https://snapshot.debian.org/archive/debian/20260727T143429Z": "sha256-R6fTF7tUMBVSxGlLO8zVU5iW9Otpdp6ttBLDJOcfkKw=",
+    "trixie-updates/main/arm64/Packages/https://snapshot.debian.org/archive/debian/20260727T143429Z": "sha256-/ncdWNSvOdu5QULW885XjTQMaxNkwXLZ6H8ih73EmUs=",
+    "trixie-updates/main/armhf/Contents/https://snapshot.debian.org/archive/debian/20260727T143429Z": "sha256-voFXkouNv9k3wEwASmMrh9Da5mQloY7wMkUkZ+FbcgE=",
+    "trixie-updates/main/armhf/Packages/https://snapshot.debian.org/archive/debian/20260727T143429Z": "sha256-yesVo4AHeravE9vG+3aVjouWuTnNyw6ZnI5YLmGbD9Y=",
+    "trixie/main/amd64/Contents/https://snapshot.debian.org/archive/debian/20260727T143429Z": "sha256-VNJ/NDObu2kiAJlIrqi+JJTlOfWsl3/A9OGI68vaq3U=",
+    "trixie/main/amd64/Packages/https://snapshot.debian.org/archive/debian/20260727T143429Z": "sha256-OrToEc9PPlozXTgsWMwZ2F8avnpO9GiRYMofY3+g6bM=",
+    "trixie/main/arm64/Contents/https://snapshot.debian.org/archive/debian/20260727T143429Z": "sha256-ZgS4GHfXUqUjr6S4PH44dRRMju0oPtBAxU5qSNLQN1c=",
+    "trixie/main/arm64/Packages/https://snapshot.debian.org/archive/debian/20260727T143429Z": "sha256-dT2nUbvHpnn0i9G2I//UR5y2hhxCYRgoTHbrgpCeSQg=",
+    "trixie/main/armhf/Contents/https://snapshot.debian.org/archive/debian/20260727T143429Z": "sha256-cgZUvvcVHctdkhjtMvqsmcGjRY+p5lZbrsd1uq2scMA=",
+    "trixie/main/armhf/Packages/https://snapshot.debian.org/archive/debian/20260727T143429Z": "sha256-1FlEKsRxlQYV+n5iZ3YbzhamPXVtKdFJVq4xVpSngQ8="
+  },
+  "packages": {
+    "/trixie-security/libgssapi-krb5-2:amd64=1.21.3-5+deb13u1": {
+      "architecture": "amd64",
+      "depends_on": [
+        "/trixie-security/libkrb5support0:amd64=1.21.3-5+deb13u1",
+        "/trixie/libc6:amd64=2.41-12+deb13u3",
+        "/trixie/libgcc-s1:amd64=14.2.0-19",
+        "/trixie/gcc-14-base:amd64=14.2.0-19",
+        "/trixie-security/libk5crypto3:amd64=1.21.3-5+deb13u1",
+        "/trixie/libcom-err2:amd64=1.47.2-3+b11",
+        "/trixie-security/libkrb5-3:amd64=1.21.3-5+deb13u1",
+        "/trixie-security/libssl3t64:amd64=3.5.6-1~deb13u2",
+        "/trixie-security/openssl-provider-legacy:amd64=3.5.6-1~deb13u2",
+        "/trixie/zlib1g:amd64=1:1.3.dfsg+really1.3.1-1+b1",
+        "/trixie/libzstd1:amd64=1.5.7+dfsg-1",
+        "/trixie/libkeyutils1:amd64=1.6.3-6"
+      ],
+      "filename": "pool/updates/main/k/krb5/libgssapi-krb5-2_1.21.3-5+deb13u1_amd64.deb",
+      "name": "libgssapi-krb5-2",
+      "section": "libs",
+      "sha256": "30847c1fde4240567d7ed3aeab4f655dd591203758b857e85e824045aae70299",
+      "size": 138356,
+      "suite": "trixie-security",
+      "version": "1.21.3-5+deb13u1"
+    },
+    "/trixie-security/libk5crypto3:amd64=1.21.3-5+deb13u1": {
+      "architecture": "amd64",
+      "depends_on": [
+        "/trixie-security/libkrb5support0:amd64=1.21.3-5+deb13u1",
+        "/trixie/libc6:amd64=2.41-12+deb13u3",
+        "/trixie/libgcc-s1:amd64=14.2.0-19",
+        "/trixie/gcc-14-base:amd64=14.2.0-19"
+      ],
+      "filename": "pool/updates/main/k/krb5/libk5crypto3_1.21.3-5+deb13u1_amd64.deb",
+      "name": "libk5crypto3",
+      "section": "libs",
+      "sha256": "7da07ee674b47f1f0be7cc89317c25310086a1f1761217d0f72e6ae2c5a69b84",
+      "size": 81152,
+      "suite": "trixie-security",
+      "version": "1.21.3-5+deb13u1"
+    },
+    "/trixie-security/libkrb5-3:amd64=1.21.3-5+deb13u1": {
+      "architecture": "amd64",
+      "depends_on": [
+        "/trixie-security/libssl3t64:amd64=3.5.6-1~deb13u2",
+        "/trixie-security/openssl-provider-legacy:amd64=3.5.6-1~deb13u2",
+        "/trixie/libc6:amd64=2.41-12+deb13u3",
+        "/trixie/libgcc-s1:amd64=14.2.0-19",
+        "/trixie/gcc-14-base:amd64=14.2.0-19",
+        "/trixie/zlib1g:amd64=1:1.3.dfsg+really1.3.1-1+b1",
+        "/trixie/libzstd1:amd64=1.5.7+dfsg-1",
+        "/trixie/libkeyutils1:amd64=1.6.3-6",
+        "/trixie-security/libk5crypto3:amd64=1.21.3-5+deb13u1",
+        "/trixie-security/libkrb5support0:amd64=1.21.3-5+deb13u1",
+        "/trixie/libcom-err2:amd64=1.47.2-3+b11"
+      ],
+      "filename": "pool/updates/main/k/krb5/libkrb5-3_1.21.3-5+deb13u1_amd64.deb",
+      "name": "libkrb5-3",
+      "section": "libs",
+      "sha256": "47d71d6a7f2e59b9bae5f89602397594805113b95889ad18fa703cd53abafc97",
+      "size": 326056,
+      "suite": "trixie-security",
+      "version": "1.21.3-5+deb13u1"
+    },
+    "/trixie-security/libkrb5support0:amd64=1.21.3-5+deb13u1": {
+      "architecture": "amd64",
+      "depends_on": [
+        "/trixie/libc6:amd64=2.41-12+deb13u3",
+        "/trixie/libgcc-s1:amd64=14.2.0-19",
+        "/trixie/gcc-14-base:amd64=14.2.0-19"
+      ],
+      "filename": "pool/updates/main/k/krb5/libkrb5support0_1.21.3-5+deb13u1_amd64.deb",
+      "name": "libkrb5support0",
+      "section": "libs",
+      "sha256": "3a0acd8b37955c0e102c756b52c97df2a31f67b96453c35dab70df218d309117",
+      "size": 33124,
+      "suite": "trixie-security",
+      "version": "1.21.3-5+deb13u1"
+    },
+    "/trixie-security/libssl3t64:amd64=3.5.6-1~deb13u2": {
+      "architecture": "amd64",
+      "depends_on": [
+        "/trixie-security/openssl-provider-legacy:amd64=3.5.6-1~deb13u2",
+        "/trixie/zlib1g:amd64=1:1.3.dfsg+really1.3.1-1+b1",
+        "/trixie/libc6:amd64=2.41-12+deb13u3",
+        "/trixie/libgcc-s1:amd64=14.2.0-19",
+        "/trixie/gcc-14-base:amd64=14.2.0-19",
+        "/trixie/libzstd1:amd64=1.5.7+dfsg-1"
+      ],
+      "filename": "pool/updates/main/o/openssl/libssl3t64_3.5.6-1~deb13u2_amd64.deb",
+      "name": "libssl3t64",
+      "section": "libs",
+      "sha256": "b2dab3fe29c1fcb82ef58c2db0ff4bd830a442cf37b9a8b730b7b6ce87181349",
+      "size": 2447924,
+      "suite": "trixie-security",
+      "version": "3.5.6-1~deb13u2"
+    },
+    "/trixie-security/openssl-provider-legacy:amd64=3.5.6-1~deb13u2": {
+      "architecture": "amd64",
+      "depends_on": [
+        "/trixie-security/libssl3t64:amd64=3.5.6-1~deb13u2",
+        "/trixie/libc6:amd64=2.41-12+deb13u3",
+        "/trixie/libgcc-s1:amd64=14.2.0-19",
+        "/trixie/gcc-14-base:amd64=14.2.0-19",
+        "/trixie/zlib1g:amd64=1:1.3.dfsg+really1.3.1-1+b1",
+        "/trixie/libzstd1:amd64=1.5.7+dfsg-1"
+      ],
+      "filename": "pool/updates/main/o/openssl/openssl-provider-legacy_3.5.6-1~deb13u2_amd64.deb",
+      "name": "openssl-provider-legacy",
+      "section": "utils",
+      "sha256": "feac35e2e79f70ca54abe3ffe3d7eeb51af5e56789d3b668df1ea4e6644db0a4",
+      "size": 312688,
+      "suite": "trixie-security",
+      "version": "3.5.6-1~deb13u2"
+    },
+    "/trixie/gcc-14-base:amd64=14.2.0-19": {
+      "architecture": "amd64",
+      "depends_on": [],
+      "filename": "pool/main/g/gcc-14/gcc-14-base_14.2.0-19_amd64.deb",
+      "name": "gcc-14-base",
+      "section": "libs",
+      "sha256": "5b6825de4263824b78c4c51f6476414f3b4e89c2ab63e81dc8b9b5501e867cf6",
+      "size": 49432,
+      "suite": "trixie",
+      "version": "14.2.0-19"
+    },
+    "/trixie/libacl1:amd64=2.3.2-2+b1": {
+      "architecture": "amd64",
+      "depends_on": [
+        "/trixie/libc6:amd64=2.41-12+deb13u3",
+        "/trixie/libgcc-s1:amd64=14.2.0-19",
+        "/trixie/gcc-14-base:amd64=14.2.0-19"
+      ],
+      "filename": "pool/main/a/acl/libacl1_2.3.2-2+b1_amd64.deb",
+      "name": "libacl1",
+      "section": "libs",
+      "sha256": "08074f01e384bc07c0c2d79a58cf4a6523f71cf75d1808101c79617656c9a39d",
+      "size": 32860,
+      "suite": "trixie",
+      "version": "2.3.2-2+b1"
+    },
+    "/trixie/libc6:amd64=2.41-12+deb13u3": {
+      "architecture": "amd64",
+      "depends_on": [
+        "/trixie/libgcc-s1:amd64=14.2.0-19",
+        "/trixie/gcc-14-base:amd64=14.2.0-19"
+      ],
+      "filename": "pool/main/g/glibc/libc6_2.41-12+deb13u3_amd64.deb",
+      "name": "libc6",
+      "section": "libs",
+      "sha256": "8ffd13165b9ee3f067e2ee670df718e48c1bdaa18676ac93d1de761dbbb3913c",
+      "size": 2849576,
+      "suite": "trixie",
+      "version": "2.41-12+deb13u3"
+    },
+    "/trixie/libcap2:amd64=1:2.75-10+deb13u1+b1": {
+      "architecture": "amd64",
+      "depends_on": [
+        "/trixie/libc6:amd64=2.41-12+deb13u3",
+        "/trixie/libgcc-s1:amd64=14.2.0-19",
+        "/trixie/gcc-14-base:amd64=14.2.0-19"
+      ],
+      "filename": "pool/main/libc/libcap2/libcap2_2.75-10+deb13u1+b1_amd64.deb",
+      "name": "libcap2",
+      "section": "libs",
+      "sha256": "860db6f80d400239744eee2b454f1d8e66b064e18dd0527535824887691e9cb7",
+      "size": 28988,
+      "suite": "trixie",
+      "version": "1:2.75-10+deb13u1+b1"
+    },
+    "/trixie/libcom-err2:amd64=1.47.2-3+b11": {
+      "architecture": "amd64",
+      "depends_on": [
+        "/trixie/libc6:amd64=2.41-12+deb13u3",
+        "/trixie/libgcc-s1:amd64=14.2.0-19",
+        "/trixie/gcc-14-base:amd64=14.2.0-19"
+      ],
+      "filename": "pool/main/e/e2fsprogs/libcom-err2_1.47.2-3+b11_amd64.deb",
+      "name": "libcom-err2",
+      "section": "libs",
+      "sha256": "e1feff126b3e8b3a7b18087e88681469b70d8f6d1b7c4e4b89d98577e1a2fdd7",
+      "size": 25036,
+      "suite": "trixie",
+      "version": "1.47.2-3+b11"
+    },
+    "/trixie/libevent-2.1-7t64:amd64=2.1.12-stable-10+b1": {
+      "architecture": "amd64",
+      "depends_on": [
+        "/trixie/libc6:amd64=2.41-12+deb13u3",
+        "/trixie/libgcc-s1:amd64=14.2.0-19",
+        "/trixie/gcc-14-base:amd64=14.2.0-19"
+      ],
+      "filename": "pool/main/libe/libevent/libevent-2.1-7t64_2.1.12-stable-10+b1_amd64.deb",
+      "name": "libevent-2.1-7t64",
+      "section": "libs",
+      "sha256": "5b2201fe46d8710bc4b2566abe0a3e29c63dd94779644f6d32c777a5281c86a3",
+      "size": 181612,
+      "suite": "trixie",
+      "version": "2.1.12-stable-10+b1"
+    },
+    "/trixie/libevent-core-2.1-7t64:amd64=2.1.12-stable-10+b1": {
+      "architecture": "amd64",
+      "depends_on": [
+        "/trixie/libc6:amd64=2.41-12+deb13u3",
+        "/trixie/libgcc-s1:amd64=14.2.0-19",
+        "/trixie/gcc-14-base:amd64=14.2.0-19"
+      ],
+      "filename": "pool/main/libe/libevent/libevent-core-2.1-7t64_2.1.12-stable-10+b1_amd64.deb",
+      "name": "libevent-core-2.1-7t64",
+      "section": "libs",
+      "sha256": "1bc17a28932ce24d863ae39dfc1a975c5c83760bb67655d9e4dd3807c9b768e0",
+      "size": 132136,
+      "suite": "trixie",
+      "version": "2.1.12-stable-10+b1"
+    },
+    "/trixie/libevent-pthreads-2.1-7t64:amd64=2.1.12-stable-10+b1": {
+      "architecture": "amd64",
+      "depends_on": [
+        "/trixie/libevent-core-2.1-7t64:amd64=2.1.12-stable-10+b1",
+        "/trixie/libc6:amd64=2.41-12+deb13u3",
+        "/trixie/libgcc-s1:amd64=14.2.0-19",
+        "/trixie/gcc-14-base:amd64=14.2.0-19"
+      ],
+      "filename": "pool/main/libe/libevent/libevent-pthreads-2.1-7t64_2.1.12-stable-10+b1_amd64.deb",
+      "name": "libevent-pthreads-2.1-7t64",
+      "section": "libs",
+      "sha256": "0a7819e533e5a03cb57ef3b04269141da9e1140a4c0a95f872655bf5ca0119a7",
+      "size": 54268,
+      "suite": "trixie",
+      "version": "2.1.12-stable-10+b1"
+    },
+    "/trixie/libexplain51t64:amd64=1.4.D001-16": {
+      "architecture": "amd64",
+      "depends_on": [
+        "/trixie/libcap2:amd64=1:2.75-10+deb13u1+b1",
+        "/trixie/libc6:amd64=2.41-12+deb13u3",
+        "/trixie/libgcc-s1:amd64=14.2.0-19",
+        "/trixie/gcc-14-base:amd64=14.2.0-19",
+        "/trixie/libacl1:amd64=2.3.2-2+b1",
+        "/trixie/lsof:amd64=4.99.4+dfsg-2",
+        "/trixie/libtirpc3t64:amd64=1.3.6+ds-1",
+        "/trixie/libtirpc-common:amd64=1.3.6+ds-1",
+        "/trixie-security/libgssapi-krb5-2:amd64=1.21.3-5+deb13u1",
+        "/trixie-security/libkrb5support0:amd64=1.21.3-5+deb13u1",
+        "/trixie-security/libk5crypto3:amd64=1.21.3-5+deb13u1",
+        "/trixie/libcom-err2:amd64=1.47.2-3+b11",
+        "/trixie-security/libkrb5-3:amd64=1.21.3-5+deb13u1",
+        "/trixie-security/libssl3t64:amd64=3.5.6-1~deb13u2",
+        "/trixie-security/openssl-provider-legacy:amd64=3.5.6-1~deb13u2",
+        "/trixie/zlib1g:amd64=1:1.3.dfsg+really1.3.1-1+b1",
+        "/trixie/libzstd1:amd64=1.5.7+dfsg-1",
+        "/trixie/libkeyutils1:amd64=1.6.3-6",
+        "/trixie/libselinux1:amd64=3.8.1-1",
+        "/trixie/libpcre2-8-0:amd64=10.46-1~deb13u1",
+        "/trixie/liblsof0:amd64=4.99.4+dfsg-2"
+      ],
+      "filename": "pool/main/libe/libexplain/libexplain51t64_1.4.D001-16_amd64.deb",
+      "name": "libexplain51t64",
+      "section": "libs",
+      "sha256": "cf5a8b6b5fb5ded40f2bf8c8ebf01e3b00ab739dad6870c9ec3bd2b0d127eb2e",
+      "size": 317528,
+      "suite": "trixie",
+      "version": "1.4.D001-16"
+    },
+    "/trixie/libgcc-s1:amd64=14.2.0-19": {
+      "architecture": "amd64",
+      "depends_on": [
+        "/trixie/libc6:amd64=2.41-12+deb13u3",
+        "/trixie/gcc-14-base:amd64=14.2.0-19"
+      ],
+      "filename": "pool/main/g/gcc-14/libgcc-s1_14.2.0-19_amd64.deb",
+      "name": "libgcc-s1",
+      "section": "libs",
+      "sha256": "3c71917b490d1a17aed43196a2787a256ecf060526cdb20216a74bedc061b150",
+      "size": 72772,
+      "suite": "trixie",
+      "version": "14.2.0-19"
+    },
+    "/trixie/libhiredis1.1.0:amd64=1.2.0-6+b3": {
+      "architecture": "amd64",
+      "depends_on": [
+        "/trixie-security/libssl3t64:amd64=3.5.6-1~deb13u2",
+        "/trixie-security/openssl-provider-legacy:amd64=3.5.6-1~deb13u2",
+        "/trixie/libc6:amd64=2.41-12+deb13u3",
+        "/trixie/libgcc-s1:amd64=14.2.0-19",
+        "/trixie/gcc-14-base:amd64=14.2.0-19",
+        "/trixie/zlib1g:amd64=1:1.3.dfsg+really1.3.1-1+b1",
+        "/trixie/libzstd1:amd64=1.5.7+dfsg-1"
+      ],
+      "filename": "pool/main/h/hiredis/libhiredis1.1.0_1.2.0-6+b3_amd64.deb",
+      "name": "libhiredis1.1.0",
+      "section": "libs",
+      "sha256": "dae3af5380cb0c12e170271f19d318529331cfa17b5fa47971837b3e2a49bb83",
+      "size": 50828,
+      "suite": "trixie",
+      "version": "1.2.0-6+b3"
+    },
+    "/trixie/libkeyutils1:amd64=1.6.3-6": {
+      "architecture": "amd64",
+      "depends_on": [
+        "/trixie/libc6:amd64=2.41-12+deb13u3",
+        "/trixie/libgcc-s1:amd64=14.2.0-19",
+        "/trixie/gcc-14-base:amd64=14.2.0-19"
+      ],
+      "filename": "pool/main/k/keyutils/libkeyutils1_1.6.3-6_amd64.deb",
+      "name": "libkeyutils1",
+      "section": "libs",
+      "sha256": "0b11ad17be0300b63ad4eeb4c6450fed24d34b7b740f23e5363dcb29ee6d5eba",
+      "size": 9456,
+      "suite": "trixie",
+      "version": "1.6.3-6"
+    },
+    "/trixie/liblsof0:amd64=4.99.4+dfsg-2": {
+      "architecture": "amd64",
+      "depends_on": [
+        "/trixie/libselinux1:amd64=3.8.1-1",
+        "/trixie/libpcre2-8-0:amd64=10.46-1~deb13u1",
+        "/trixie/libc6:amd64=2.41-12+deb13u3",
+        "/trixie/libgcc-s1:amd64=14.2.0-19",
+        "/trixie/gcc-14-base:amd64=14.2.0-19"
+      ],
+      "filename": "pool/main/l/lsof/liblsof0_4.99.4+dfsg-2_amd64.deb",
+      "name": "liblsof0",
+      "section": "libs",
+      "sha256": "9d21722d696fb8c7fd92f389ab84f0919455c77ea736c6f43d8e98b6751cca5a",
+      "size": 133732,
+      "suite": "trixie",
+      "version": "4.99.4+dfsg-2"
+    },
+    "/trixie/libpcre2-8-0:amd64=10.46-1~deb13u1": {
+      "architecture": "amd64",
+      "depends_on": [
+        "/trixie/libc6:amd64=2.41-12+deb13u3",
+        "/trixie/libgcc-s1:amd64=14.2.0-19",
+        "/trixie/gcc-14-base:amd64=14.2.0-19"
+      ],
+      "filename": "pool/main/p/pcre2/libpcre2-8-0_10.46-1~deb13u1_amd64.deb",
+      "name": "libpcre2-8-0",
+      "section": "libs",
+      "sha256": "6aa452af6a07e34498bf8e734e8789c9dd602fb34f12572e62dc1bba4889a60e",
+      "size": 298536,
+      "suite": "trixie",
+      "version": "10.46-1~deb13u1"
+    },
+    "/trixie/libselinux1:amd64=3.8.1-1": {
+      "architecture": "amd64",
+      "depends_on": [
+        "/trixie/libpcre2-8-0:amd64=10.46-1~deb13u1",
+        "/trixie/libc6:amd64=2.41-12+deb13u3",
+        "/trixie/libgcc-s1:amd64=14.2.0-19",
+        "/trixie/gcc-14-base:amd64=14.2.0-19"
+      ],
+      "filename": "pool/main/libs/libselinux/libselinux1_3.8.1-1_amd64.deb",
+      "name": "libselinux1",
+      "section": "libs",
+      "sha256": "68bb8d32bd8d6d7d2f5952a169db03d1484b46ae1e52abccdec42a19dccea5d5",
+      "size": 84680,
+      "suite": "trixie",
+      "version": "3.8.1-1"
+    },
+    "/trixie/libstdc++6:amd64=14.2.0-19": {
+      "architecture": "amd64",
+      "depends_on": [
+        "/trixie/libgcc-s1:amd64=14.2.0-19",
+        "/trixie/libc6:amd64=2.41-12+deb13u3",
+        "/trixie/gcc-14-base:amd64=14.2.0-19"
+      ],
+      "filename": "pool/main/g/gcc-14/libstdc++6_14.2.0-19_amd64.deb",
+      "name": "libstdc++6",
+      "section": "libs",
+      "sha256": "ab1fa05837aa7a92aae748fd07a18a35f7d18bb4a71c4724fe2bbf0e32089de0",
+      "size": 713628,
+      "suite": "trixie",
+      "version": "14.2.0-19"
+    },
+    "/trixie/libtirpc-common:amd64=1.3.6+ds-1": {
+      "architecture": "all",
+      "depends_on": [],
+      "filename": "pool/main/libt/libtirpc/libtirpc-common_1.3.6+ds-1_all.deb",
+      "name": "libtirpc-common",
+      "section": "libs",
+      "sha256": "300f582e2c9151a8d329568c705cadc76252c417147312fe331c4560d2c7a6c3",
+      "size": 11004,
+      "suite": "trixie",
+      "version": "1.3.6+ds-1"
+    },
+    "/trixie/libtirpc3t64:amd64=1.3.6+ds-1": {
+      "architecture": "amd64",
+      "depends_on": [
+        "/trixie/libtirpc-common:amd64=1.3.6+ds-1",
+        "/trixie-security/libgssapi-krb5-2:amd64=1.21.3-5+deb13u1",
+        "/trixie-security/libkrb5support0:amd64=1.21.3-5+deb13u1",
+        "/trixie/libc6:amd64=2.41-12+deb13u3",
+        "/trixie/libgcc-s1:amd64=14.2.0-19",
+        "/trixie/gcc-14-base:amd64=14.2.0-19",
+        "/trixie-security/libk5crypto3:amd64=1.21.3-5+deb13u1",
+        "/trixie/libcom-err2:amd64=1.47.2-3+b11",
+        "/trixie-security/libkrb5-3:amd64=1.21.3-5+deb13u1",
+        "/trixie-security/libssl3t64:amd64=3.5.6-1~deb13u2",
+        "/trixie-security/openssl-provider-legacy:amd64=3.5.6-1~deb13u2",
+        "/trixie/zlib1g:amd64=1:1.3.dfsg+really1.3.1-1+b1",
+        "/trixie/libzstd1:amd64=1.5.7+dfsg-1",
+        "/trixie/libkeyutils1:amd64=1.6.3-6"
+      ],
+      "filename": "pool/main/libt/libtirpc/libtirpc3t64_1.3.6+ds-1_amd64.deb",
+      "name": "libtirpc3t64",
+      "section": "libs",
+      "sha256": "ef4536c09bf5063554310e22d586ae90990100ba66d2fe7c35660e9e658913b6",
+      "size": 83300,
+      "suite": "trixie",
+      "version": "1.3.6+ds-1"
+    },
+    "/trixie/libzstd1:amd64=1.5.7+dfsg-1": {
+      "architecture": "amd64",
+      "depends_on": [
+        "/trixie/libc6:amd64=2.41-12+deb13u3",
+        "/trixie/libgcc-s1:amd64=14.2.0-19",
+        "/trixie/gcc-14-base:amd64=14.2.0-19"
+      ],
+      "filename": "pool/main/libz/libzstd/libzstd1_1.5.7+dfsg-1_amd64.deb",
+      "name": "libzstd1",
+      "section": "libs",
+      "sha256": "2f6a2aeacfc925eba8b00ac9139bc4bfccf8cacb09eb93de067074b26948eef9",
+      "size": 303836,
+      "suite": "trixie",
+      "version": "1.5.7+dfsg-1"
+    },
+    "/trixie/lsof:amd64=4.99.4+dfsg-2": {
+      "architecture": "amd64",
+      "depends_on": [
+        "/trixie/libtirpc3t64:amd64=1.3.6+ds-1",
+        "/trixie/libtirpc-common:amd64=1.3.6+ds-1",
+        "/trixie-security/libgssapi-krb5-2:amd64=1.21.3-5+deb13u1",
+        "/trixie-security/libkrb5support0:amd64=1.21.3-5+deb13u1",
+        "/trixie/libc6:amd64=2.41-12+deb13u3",
+        "/trixie/libgcc-s1:amd64=14.2.0-19",
+        "/trixie/gcc-14-base:amd64=14.2.0-19",
+        "/trixie-security/libk5crypto3:amd64=1.21.3-5+deb13u1",
+        "/trixie/libcom-err2:amd64=1.47.2-3+b11",
+        "/trixie-security/libkrb5-3:amd64=1.21.3-5+deb13u1",
+        "/trixie-security/libssl3t64:amd64=3.5.6-1~deb13u2",
+        "/trixie-security/openssl-provider-legacy:amd64=3.5.6-1~deb13u2",
+        "/trixie/zlib1g:amd64=1:1.3.dfsg+really1.3.1-1+b1",
+        "/trixie/libzstd1:amd64=1.5.7+dfsg-1",
+        "/trixie/libkeyutils1:amd64=1.6.3-6",
+        "/trixie/libselinux1:amd64=3.8.1-1",
+        "/trixie/libpcre2-8-0:amd64=10.46-1~deb13u1",
+        "/trixie/liblsof0:amd64=4.99.4+dfsg-2"
+      ],
+      "filename": "pool/main/l/lsof/lsof_4.99.4+dfsg-2_amd64.deb",
+      "name": "lsof",
+      "section": "utils",
+      "sha256": "76ca9b82da6d5dabd66609937675768a593c20c5e544171a2d9544060a1780b7",
+      "size": 315732,
+      "suite": "trixie",
+      "version": "4.99.4+dfsg-2"
+    },
+    "/trixie/zlib1g:amd64=1:1.3.dfsg+really1.3.1-1+b1": {
+      "architecture": "amd64",
+      "depends_on": [
+        "/trixie/libc6:amd64=2.41-12+deb13u3",
+        "/trixie/libgcc-s1:amd64=14.2.0-19",
+        "/trixie/gcc-14-base:amd64=14.2.0-19"
+      ],
+      "filename": "pool/main/z/zlib/zlib1g_1.3.dfsg+really1.3.1-1+b1_amd64.deb",
+      "name": "zlib1g",
+      "section": "libs",
+      "sha256": "015be740d6236ad114582dea500c1d907f29e16d6db00566ca32fb68d71ac90d",
+      "size": 88892,
+      "suite": "trixie",
+      "version": "1:1.3.dfsg+really1.3.1-1+b1"
+    }
+  },
+  "sources": {
+    "trixie": {
+      "architectures": [
+        "amd64",
+        "arm64",
+        "armhf"
+      ],
+      "components": [
+        "main"
+      ],
+      "types": [],
+      "uris": [
+        "https://snapshot.debian.org/archive/debian/20260727T143429Z"
+      ]
+    },
+    "trixie-security": {
+      "architectures": [
+        "amd64",
+        "arm64",
+        "armhf"
+      ],
+      "components": [
+        "main"
+      ],
+      "types": [],
+      "uris": [
+        "https://snapshot.debian.org/archive/debian-security/20260726T121236Z"
+      ]
+    },
+    "trixie-updates": {
+      "architectures": [
+        "amd64",
+        "arm64",
+        "armhf"
+      ],
+      "components": [
+        "main"
+      ],
+      "types": [],
+      "uris": [
+        "https://snapshot.debian.org/archive/debian/20260727T143429Z"
+      ]
+    }
+  },
+  "version": 2
+}
