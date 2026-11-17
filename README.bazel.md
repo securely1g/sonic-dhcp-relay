@@ -8,7 +8,7 @@ and gitlink revisions are retained. It does not produce DEBs or assemble an imag
 
 Use Bazel 8.5.1 and the canonical registry/BCR endpoints in `.bazelrc`.
 `MODULE.bazel` requires published Common `.9-334389...` (including its published
-YANG runtime overlay), infra `.26-51c838...`, distroless `.16`, and libyang `.6`.
+YANG runtime overlay), infra `.37-316e298...`, distroless `.20`, and libyang `.6`.
 There are no sibling-checkout overrides and no unused DHCP monitor dependency.
 The old experimental Common/infra linker-metadata adapter is deliberately not
 included: current distroless rewrites imported GNU linker scripts. This does not
@@ -98,11 +98,16 @@ verifies cleanup, failure propagation, and fresh state; it produces no DEBs.
 
 ### Fresh APT acceptance gate
 
-`apt.lock.json` is the frozen reviewed **acceptance contract**, not an input
-consumed by the facts-mode resolver. It was refreshed byte-for-byte from successful
-authoritative resolution of this dependency graph (1122 packages, including
-`libnl_system` and `libyang_system`). Retain a fresh comparison receipt for the
-configured graph; the frozen contract alone is not fresh-resolution evidence. Run:
+`apt.lock.json` remains the frozen reviewed **acceptance contract** from the
+earlier facts-mode resolver (1122 packages, including `libnl_system` and
+`libyang_system`). The current graph imports the unified production lock from
+`@sonic_build_infra//apt:apt.lock.json`. Its published `trixie` dependency set
+does not yet record all relay requests, so fresh resolution stops at
+`libasan8 (= 14.2.0-19) [amd64]` before comparing the frozen contract. The
+shared lock needs a complete relay dependency set, and the retained package
+identities need reconciliation before this gate can use the unified format.
+Keep both checked-in lock files unchanged until that work is complete.
+Run the existing gate with:
 
 ```sh
 python3 tools/bazel/validate-apt-lock.py --evidence-dir <new-receipt-dir> -- <configured-bazel-launcher>
@@ -112,7 +117,8 @@ The launcher must accept `mod deps --lockfile_mode=update`. The gate preserves
 any previous generated lock, forces new resolution, and fails on resolver failure
 or package/source/dependency-set drift. Review the successful fresh result before
 updating the canonical contract; do not copy old resolution state as new evidence.
-The imported `bazel_metadata/apt.lock.json` separately pins metadata payload inputs.
+The separate metadata APT extension imports `bazel_metadata/apt.lock.json` for
+metadata payload inputs while the shared dependency-set coverage is incomplete.
 
 ## Current readiness limits
 
