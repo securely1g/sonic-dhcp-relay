@@ -14,13 +14,10 @@ The old experimental Common/infra linker-metadata adapter is deliberately not
 included: current distroless rewrites imported GNU linker scripts. This does not
 establish that every current shared-link/runtime boundary has passed validation.
 
-PcapPlusPlus v24.09 is built from its checksummed source archive using upstream
-CMake and the existing SONiC random-source-port patch. BCR libpcap `.bcr.4` and
-m4/bison/flex wrapper-header patches preserve gnulib header ordering under the
-selected GCC toolchain. These `single_version_override` patches are **root-only**:
-a downstream root must repeat the same parser-generator selections/patches until
-a reviewed registry/BCR solution replaces them. Do not silently drop them when
-registering this module. The patches do not substitute prebuilt project binaries.
+The published native `pcapplusplus@24.9.0.sonic.1` target builds the existing
+PcapPlusPlus v24.09 sources with SONiC's random-source-port patch. The relay and
+packet tests depend on its public `@pcapplusplus//:Pcap++` target. This removes
+the nested CMake producer and root-only parser-generator overrides.
 The header-only gmock-global test dependency uses a verified immutable source
 archive at the exact existing gitlink commit `6552faa2a94250ed0192dbd62e608d37fafcc216`.
 This avoids requiring submodule contents omitted by GitHub source archives;
@@ -138,8 +135,7 @@ capability-free, network-disabled, read-only Docker runtime as the original
 suites. XML must show at least 3/2/62/47 completed cases respectively, no skips
 or disabled cases; additions are allowed, silent coverage loss is not.
 
-CPU/action concurrency is bounded to two jobs, an 8 GiB scheduling budget and
-serial nested foreign builds. The artifact includes selected output files and
+CPU/action concurrency is bounded to two jobs and an 8 GiB scheduling budget. The artifact includes selected output files and
 checksums, source commit/tree, tool/config hashes, fresh resolution lock, module
 graph, configured actions, BEP and JUnit/test logs, including available failure
 receipts. No caches or environment/credential dumps are uploaded. An actual
