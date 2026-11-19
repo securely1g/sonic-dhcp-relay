@@ -10,13 +10,21 @@
 #include "../src/dhcp4relay.h"
 #include <fcntl.h>
 
-namespace { std::set<int> packet_fds; }
+namespace {
+std::set<int> packet_fds;
+std::set<int> udp_fds;
+}
 extern "C" int __real_socket(int, int, int);
 extern "C" int __real_bind(int, const sockaddr *, socklen_t);
 extern "C" int __real_close(int);
 extern "C" int __real_setsockopt(int, int, int, const void *, socklen_t);
 extern "C" int __wrap_socket(int domain, int type, int protocol) {
-    if (domain != AF_PACKET) return __real_socket(domain, type, protocol);
+    if (domain != AF_PACKET) {
+        const int fd = __real_socket(domain, type, protocol);
+        if (fd >= 0 && domain == AF_INET && type == SOCK_DGRAM && protocol == 0)
+            udp_fds.insert(fd);
+        return fd;
+    }
     EXPECT_EQ(type, SOCK_RAW);
     EXPECT_EQ(protocol, htons(ETH_P_ALL));
     int fd = __real_socket(AF_UNIX, SOCK_DGRAM, 0);
@@ -24,6 +32,19 @@ extern "C" int __wrap_socket(int domain, int type, int protocol) {
     return fd;
 }
 extern "C" int __wrap_bind(int fd, const sockaddr *addr, socklen_t len) {
+    if (udp_fds.count(fd)) {
+        // Check the production DHCP endpoint, then ask the real kernel to bind
+        // an ephemeral port. Unit tests need neither CAP_NET_BIND_SERVICE nor
+        // exclusive ownership of the host's DHCP port; address errors stay real.
+        EXPECT_NE(addr, nullptr);
+        EXPECT_EQ(len, sizeof(sockaddr_in));
+        if (!addr || len != sizeof(sockaddr_in)) return -1;
+        auto endpoint = *reinterpret_cast<const sockaddr_in *>(addr);
+        EXPECT_EQ(endpoint.sin_family, AF_INET);
+        EXPECT_EQ(endpoint.sin_port, htons(67));
+        endpoint.sin_port = 0;
+        return __real_bind(fd, reinterpret_cast<const sockaddr *>(&endpoint), len);
+    }
     if (!packet_fds.count(fd)) return __real_bind(fd, addr, len);
     EXPECT_EQ(len, sizeof(sockaddr_ll));
     if (len != sizeof(sockaddr_ll)) return -1;
@@ -48,6 +69,7 @@ extern "C" int __wrap_setsockopt(int fd, int level, int opt, const void *value, 
 }
 extern "C" int __wrap_close(int fd) {
     packet_fds.erase(fd);
+    udp_fds.erase(fd);
     return __real_close(fd);
 }
 class PacketSocketCleanup : public testing::EmptyTestEventListener {
@@ -85,6 +107,11 @@ class PacketSocketCleanup : public testing::EmptyTestEventListener {
         }
         for (int fd : packet_fds) __real_close(fd);
         packet_fds.clear();
+    }
+    void OnTestProgramEnd(const testing::UnitTest &) override {
+        // Some upstream cases intentionally keep successful fixture sockets.
+        for (int fd : udp_fds) __real_close(fd);
+        udp_fds.clear();
     }
 };
 static const bool registered = [] {

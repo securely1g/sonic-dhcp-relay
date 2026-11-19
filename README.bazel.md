@@ -47,7 +47,9 @@ assertions: 3 sender tests, 2 PcapPlusPlus regression tests, 62 DHCP4 tests, and
 ELF architecture and transitive `DT_NEEDED` providers before invoking the target
 loader. Docker, privileged containers, and host target libraries are unnecessary.
 The test-only socket seams preserve real kernel BPF checks while avoiding raw
-socket privileges. The manual `:v4_negative_control_test` must fail the original
+socket privileges. They assert the requested DHCP UDP ports (67/547), then
+perform real binds to ephemeral ports so non-root tests need no privileged
+ports; the address, socket options and bind errors remain real. The manual `:v4_negative_control_test` must fail the original
 `bootp_pad` assertions and is excluded from normal passing test selections.
 
 DHCP6 retains the source-owned `test/run_tests.py` fixture and launches a locked
