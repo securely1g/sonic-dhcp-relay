@@ -38,10 +38,8 @@ bazel_dep(name = "libyang", version = "3.12.2.sonic.6")
 # Match Common's selected source owner; do not substitute distro libnl.
 bazel_dep(name = "libnl3", version = "3.7.0.sonic.7")
 
-# PcapPlusPlus has no upstream/BCR Bazel target (inspection in migration evidence).
-# Reuse upstream CMake through rules_foreign_cc, and canonical BCR libpcap.
-bazel_dep(name = "rules_foreign_cc", version = "0.16.0.sonic.1")
-bazel_dep(name = "libpcap", version = "1.10.5.bcr.4")
+# The published native target carries the SONiC random-source-port patch.
+bazel_dep(name = "pcapplusplus", version = "24.9.0.sonic.1")
 http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 # Same immutable source as the existing gitlink, also available in source archives.
 http_archive(
@@ -52,22 +50,6 @@ http_archive(
     strip_prefix = "gmock-global-6552faa2a94250ed0192dbd62e608d37fafcc216",
     build_file = "//third_party:gmock-global.BUILD.bazel",
 )
-http_archive(
-    name = "pcapplusplus",
-    type = "tar.gz",
-    urls = ["https://codeload.github.com/seladb/PcapPlusPlus/tar.gz/refs/tags/v24.09"],
-    sha256 = "b14998ecf5718c2bfb6f709060e53f7ef67639b98bf2222a3cd23d820d70acdc",
-    strip_prefix = "PcapPlusPlus-24.09",
-    patches = ["//dhcp4relay/patch:0001-dhcpv4-relay-accept-random-src-port.patch"],
-    patch_args = ["-p1"],
-    build_file = "//third_party:pcapplusplus.BUILD.bazel",
-)
+
 
 bazel_dep(name = "rules_shell", version = "0.8.0")
-
-
-# Execution-tool gnulib wrappers must precede system headers. These root-only
-# BCR source patches do not change runtime sources or compiler selection.
-single_version_override(module_name = "m4", version = "1.4.21.bcr.8", patches = ["//third_party/patches:m4-wrapper-headers.patch"], patch_strip = 1)
-single_version_override(module_name = "bison", version = "3.8.2.bcr.13", patches = ["//third_party/patches:bison-wrapper-headers.patch"], patch_strip = 1)
-single_version_override(module_name = "flex", version = "2.6.4.bcr.10", patches = ["//third_party/patches:flex-wrapper-headers.patch"], patch_strip = 1)

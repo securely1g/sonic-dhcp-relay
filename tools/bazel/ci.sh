@@ -29,7 +29,7 @@ trap finish EXIT
 [[ -z $(git status --porcelain --untracked-files=no) ]]
 [[ ! -e "$CI_STATE" ]] || { echo 'CI_STATE must be new (no reused outputs)'; exit 1; }
 mkdir -p "$CI_STATE"/{tmp,repos,output,sandbox}
-export TMPDIR="$CI_STATE/tmp" MAKEFLAGS=-j1 CMAKE_BUILD_PARALLEL_LEVEL=1 NINJAFLAGS=-j1
+export TMPDIR="$CI_STATE/tmp"
 {
   git rev-parse HEAD HEAD^{tree}
   sha256sum "$BAZEL" .bazelrc MODULE.bazel
@@ -46,11 +46,6 @@ build --local_resources=cpu=2
 build --local_resources=memory=8192
 build --sandbox_base=$CI_STATE/sandbox
 build --action_env=TMPDIR=$CI_STATE/tmp
-build --action_env=MAKEFLAGS=-j1
-build --action_env=CMAKE_BUILD_PARALLEL_LEVEL=1
-build --action_env=NINJAFLAGS=-j1
-build --@rules_foreign_cc//foreign_cc/settings:size_default=serial
-build --@rules_foreign_cc//foreign_cc/settings:parallelism_overcommit=0
 EOF
 cat > "$CI_STATE/bazel" <<EOF
 #!/usr/bin/env bash
