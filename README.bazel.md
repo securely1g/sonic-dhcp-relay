@@ -8,7 +8,7 @@ and gitlink revisions are retained. It does not produce DEBs or assemble an imag
 
 Use Bazel 8.5.1 and the canonical registry/BCR endpoints in `.bazelrc`.
 `MODULE.bazel` requires published Common `.9-334389...` (including its published
-YANG runtime overlay), infra `.26-51c838...`, distroless `.16`, and libyang `.6`.
+YANG runtime overlay), infra `.39-8147619...`, distroless `.21`, and libyang `.6`.
 There are no sibling-checkout overrides and no unused DHCP monitor dependency.
 The old experimental Common/infra linker-metadata adapter is deliberately not
 included: current distroless rewrites imported GNU linker scripts. This does not
@@ -60,8 +60,8 @@ remain additional runtime-acceptance checks. The declared closure includes Commo
 source-built libnl core/route/nf TARs and libyang's owner-selected PCRE2/xxhash APT
 payload aliases; it does not change Common to static linkage. Boost thread/system
 payloads use the same already-declared development-package closure as compilation.
-No APT versions/checksums are hand-edited: the fresh-resolution gate below remains
-required, including libyang's `libyang_system` dependency set in its new receipt.
+No APT versions/checksums are hand-edited: the published shared lock and its
+request/source freshness checks remain required during configured analysis.
 `:v4_negative_control_test` is manual and expected to fail.
 
 The loader-output gate has bounded, Docker-free positive/missing/ambient controls:
@@ -96,34 +96,26 @@ This suite needs an existing Redis executable (`REDIS_SERVER` may select a
 loader wrapper). It creates only private temporary sockets/configuration and
 verifies cleanup, failure propagation, and fresh state; it produces no DEBs.
 
-### Fresh APT acceptance gate
+### Shared APT lock checks
 
-`apt.lock.json` is the frozen reviewed **acceptance contract**, not an input
-consumed by the facts-mode resolver. It was refreshed byte-for-byte from successful
-authoritative resolution of this dependency graph (1122 packages, including
-`libnl_system` and `libyang_system`). Retain a fresh comparison receipt for the
-configured graph; the frozen contract alone is not fresh-resolution evidence. Run:
+The build and metadata targets consume the published `dhcpmon_debian`,
+`dhcp_relay_test_debian` and `trixie` collections from
+`@sonic_build_infra//apt:apt.lock.json`. The same import binds the owner's
+`apt/requests.json` and `apt/sources.json`; missing or stale requests fail during
+configured analysis before any source action runs. No component-private lock or
+fresh network resolution is needed during normal builds.
 
-```sh
-python3 tools/bazel/validate-apt-lock.py --evidence-dir <new-receipt-dir> -- <configured-bazel-launcher>
-```
+Source CI starts with a new Bazel output root, generates `MODULE.bazel.lock` as
+ignored evidence, analyzes all six runtime/debug/metadata outputs and all four
+runtime tests, and rejects DEB-producing actions before execution. The original
+full suites and their loader-closure checks remain required. `git diff
+--exit-code` verifies that validation did not change tracked inputs.
 
-The launcher must accept `mod deps --lockfile_mode=update`. The gate preserves
-any previous generated lock, forces new resolution, and fails on resolver failure
-or package/source/dependency-set drift. Review the successful fresh result before
-updating the canonical contract; do not copy old resolution state as new evidence.
-The imported `bazel_metadata/apt.lock.json` separately pins metadata payload inputs.
+## Validation scope
 
-## Current readiness limits
-
-This is a Draft source candidate, not an integration/release claim. The earlier
-November 1 frozen candidate's tests do not establish this graph's results. Fresh
-private-Redis/Make tests and static checks are recorded in publication evidence;
-C++/runtime validation can remain blocked by pinned snapshot retrieval. AMD64
-current-graph source builds, matched symbols, full suites, installed image closure,
-ARM, live forwarding, and a complete legacy image build require separate receipts.
-No infrastructure adapter, Common PR45 duplicate, platform-common migration,
-monitor source, registry publication, or automatic CI policy change belongs here.
+The source gate covers native AMD64/Trixie runtime/debug TARs, metadata and the
+complete declared test suites. ARM, live forwarding and installed-image checks
+require separate evidence; the source gate does not build a complete image.
 
 ## Source PR CI (AMD64)
 
@@ -137,7 +129,7 @@ are required. CodeQL and Semgrep remain independent and unchanged.
 `tools/bazel/ci.sh` is the reproducible entry point. Set `BAZEL` to the verified
 binary, `CI_SOURCE_SHA` to `git rev-parse HEAD`, and `CI_STATE`/`CI_EVIDENCE` to new
 absolute directories. It explicitly selects the supported trixie host **and**
-target platforms, resolves/compares the APT contract afresh (never rewrites it),
+target platforms, checks the imported APT requests/sources against the shared lock,
 audits the configured transitive graph for DEB producers before execution,
 builds both runtime/debug TARs and both metadata targets, then executes all four
 runtime test targets with `--nocache_test_results`. Focused adapters execute the

@@ -17,6 +17,13 @@ class CIGatesTest(unittest.TestCase):
         forbidden['pathFragments'][0]['label'] = 'fixture.deb'
         with self.assertRaises(ValueError):
             audit_actions(forbidden)
+        # Shared Infra's debug manifest is a TAR input, never a DEB producer.
+        debug = copy.deepcopy(graph)
+        debug['actions'][0]['mnemonic'] = 'DebugSymbolsManifest'
+        self.assertEqual(audit_actions(debug), 1)
+        debug['pathFragments'][0]['label'] = 'unexpected.deb'
+        with self.assertRaises(ValueError):
+            audit_actions(debug)
         with self.assertRaises(ValueError):
             audit_actions({'actions': []})
 
