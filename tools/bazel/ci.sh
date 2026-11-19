@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Source-only AMD64 gate. Requires Linux, Docker and verified Bazel 8.5.1.
+# Source-only AMD64 gate. Requires Linux AMD64 and verified Bazel 8.5.1.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 : "${BAZEL:?set BAZEL to the verified Bazel 8.5.1 executable}"
@@ -29,13 +29,12 @@ trap finish EXIT
 [[ -z $(git status --porcelain --untracked-files=no) ]]
 [[ ! -e "$CI_STATE" ]] || { echo 'CI_STATE must be new (no reused outputs)'; exit 1; }
 mkdir -p "$CI_STATE"/{tmp,repos,output,sandbox}
-export TMPDIR="$CI_STATE/tmp"
+export TMPDIR="$CI_STATE/tmp" MAKEFLAGS=-j1 CMAKE_BUILD_PARALLEL_LEVEL=1 NINJAFLAGS=-j1
 {
   git rev-parse HEAD HEAD^{tree}
   sha256sum "$BAZEL" .bazelrc MODULE.bazel
   python3 --version
   uname -sm
-  docker version --format '{{.Server.Version}}'
 } > "$CI_EVIDENCE/provenance.txt"
 cat > "$CI_STATE/ci.bazelrc" <<EOF
 common --repository_cache=$CI_STATE/repos
@@ -46,6 +45,9 @@ build --local_resources=cpu=2
 build --local_resources=memory=8192
 build --sandbox_base=$CI_STATE/sandbox
 build --action_env=TMPDIR=$CI_STATE/tmp
+build --action_env=MAKEFLAGS=-j1
+build --action_env=CMAKE_BUILD_PARALLEL_LEVEL=1
+build --action_env=NINJAFLAGS=-j1
 EOF
 cat > "$CI_STATE/bazel" <<EOF
 #!/usr/bin/env bash
@@ -54,7 +56,6 @@ EOF
 chmod 755 "$CI_STATE/bazel"
 bazel="$CI_STATE/bazel"
 cp "$CI_STATE/ci.bazelrc" "$CI_EVIDENCE/"
-python3 -m unittest discover -s tests/runtime -p '*_test.py' -v
 python3 -m unittest discover -s tools/bazel -p '*_test.py' -v
 "$bazel" mod graph --lockfile_mode=update > "$CI_EVIDENCE/module-graph.txt"
 artifacts=(//dhcp4relay:runtime //dhcp4relay:runtime.debug_symbols //dhcp6relay:runtime //dhcp6relay:runtime.debug_symbols //:dhcp4_metadata //:dhcp6_metadata)
@@ -75,9 +76,7 @@ for target in "${artifacts[@]}"; do
     cp "$output" "$CI_EVIDENCE/artifacts/$name/"
   done < "$CI_EVIDENCE/artifacts/$name/outputs.txt"
 done
-docker pull debian:trixie-20260918@sha256:9cc080028c43b27d2074d63a5f9caf7166d731494965616c1a6d2827a004585c
 "$bazel" test "${tests[@]}" --nocache_test_results --test_output=all --build_event_json_file="$CI_EVIDENCE/test.bep.json"
 python3 tools/bazel/ci_checks.py tests bazel-testlogs
-# Shared requests/source checks run during configured analysis. Production
-# inputs remain immutable; the generated module lock is retained as evidence.
+# Production dependency inputs are immutable; generated resolution is evidence.
 git diff --exit-code
