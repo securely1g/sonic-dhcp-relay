@@ -31,7 +31,7 @@ def audit_actions(data):
         outputs = [artifacts[key] for key in action.get('outputIds', [])]
         if (any(name.endswith(('.deb', '.udeb')) for name in outputs)
                 or ('deb' in mnemonic.lower()
-                    and mnemonic not in ('ExtractDeb', 'DebExtract', 'DebianRuntimeMetadata'))):
+                    and mnemonic not in ('ExtractDeb', 'DebExtract', 'DebianRuntimeMetadata', 'DebugSymbolsManifest'))):
             raise ValueError(f'Forbidden DEB-producing action: {mnemonic}: {outputs}')
     return len(actions)
 

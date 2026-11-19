@@ -12,9 +12,9 @@ cc_library(
     deps = [
         "@pcapplusplus//:pcapplusplus",
         "@sonic_swss_common//:libswsscommon_shared",
-        "@trixie//libevent-dev:libevent",
-        "@trixie//libboost-thread-dev:libboost-thread",
-        "@trixie//libboost-system-dev:libboost-system",
+        "@dhcpmon_debian//libevent-dev:libevent_cc",
+        "@dhcpmon_debian//libboost-thread1.83-dev:libboost_thread_cc",
+        "@dhcpmon_debian//libboost-system1.83-dev:libboost_system_cc",
     ],
 )
 cc_binary(name = "dhcp4relay", srcs = ["src/main.cpp"], copts = ["-std=c++17", "-fPIE"], linkopts = ["-pie"], deps = [":relay"])
@@ -50,9 +50,9 @@ _SUITE_DEPS = [
         "@com_google_googletest//:gtest",
         "@gmock_global_headers//:headers",
         "@sonic_swss_common//:libswsscommon_shared",
-        "@trixie//libevent-dev:libevent",
-        "@trixie//libboost-thread-dev:libboost-thread",
-        "@trixie//libboost-system-dev:libboost-system",
+        "@dhcpmon_debian//libevent-dev:libevent_cc",
+        "@dhcpmon_debian//libboost-thread1.83-dev:libboost_thread_cc",
+        "@dhcpmon_debian//libboost-system1.83-dev:libboost_system_cc",
     ]
 
 cc_binary(
