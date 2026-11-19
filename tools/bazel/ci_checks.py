@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Fail closed on package-producing actions or missing/skipped test coverage."""
+import argparse
 import json
 from pathlib import Path
-import sys
 import xml.etree.ElementTree as ET
 
 
@@ -55,10 +55,25 @@ def audit_tests(root):
     return counts
 
 
-if __name__ == '__main__':
-    if sys.argv[1] == 'actions':
-        print('Non-DEB configured actions:', audit_actions(json.loads(Path(sys.argv[2]).read_text())))
-    elif sys.argv[1] == 'tests':
-        print('Fresh complete gtest coverage:', audit_tests(Path(sys.argv[2])))
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('kind', choices=('actions', 'tests'))
+    parser.add_argument('input', type=Path)
+    parser.add_argument('--receipt', type=Path)
+    args = parser.parse_args(argv)
+    if args.kind == 'actions':
+        count = audit_actions(json.loads(args.input.read_text()))
+        print('Non-DEB configured actions:', count)
+        receipt = {'schema': 1, 'status': 'passed', 'configured_actions': count, 'deb_outputs': 0}
     else:
-        raise SystemExit('expected actions or tests')
+        counts = audit_tests(args.input)
+        print('Fresh complete gtest coverage:', counts)
+        receipt = {'schema': 1, 'status': 'passed', 'cases': counts,
+                   'total': sum(counts.values()), 'skipped': 0}
+    # Publish only values computed by the gates, never captured command/env data.
+    if args.receipt:
+        args.receipt.write_text(json.dumps(receipt, indent=2) + '\n')
+
+
+if __name__ == '__main__':
+    main()

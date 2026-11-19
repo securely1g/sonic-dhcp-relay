@@ -65,7 +65,10 @@ preserved in the source history.
 `tools/bazel/ci.sh` audits the configured transitive actions for DEB producers
 before building the six artifact targets above. It executes all four gates
 without test-result caching, rejects skipped/disabled/missing test coverage,
-and uploads artifacts, configured actions, module resolution, and JUnit logs.
+and uploads the six outputs, typed action/test audit receipts, module resolution,
+and build/JUnit logs through an explicit artifact allowlist. Raw action graphs
+and build/test BEPs remain in private `CI_STATE`, outside the uploaded evidence;
+they can contain command lines and environment values.
 CodeQL and Semgrep keep their existing independent workflows.
 
 For the same gate locally, set `BAZEL` to a verified 8.5.1 binary,

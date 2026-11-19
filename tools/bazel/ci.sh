@@ -6,6 +6,10 @@ cd "$(dirname "$0")/../.."
 : "${CI_SOURCE_SHA:?set CI_SOURCE_SHA to the checked-out commit}"
 : "${CI_STATE:?set CI_STATE to a new private absolute directory}"
 : "${CI_EVIDENCE:?set CI_EVIDENCE to a new absolute receipt directory}"
+[[ "$CI_STATE" = /* && "$CI_EVIDENCE" = /* ]]
+case "$(realpath -m "$CI_STATE")/" in
+  "$(realpath -m "$CI_EVIDENCE")/"*) echo 'CI_STATE must be outside uploaded evidence'; exit 1 ;;
+esac
 mkdir -p "$CI_EVIDENCE"
 exec > >(tee "$CI_EVIDENCE/driver.log") 2>&1
 finish() {
@@ -62,9 +66,11 @@ artifacts=(//dhcp4relay:runtime //dhcp4relay:runtime.debug_symbols //dhcp6relay:
 tests=(//tests/runtime:sender_test //tests/runtime:pcap_patch_test //tests/runtime:v4_full_suite_test //tests/runtime:v6_full_suite_test)
 selection="set(${artifacts[*]} ${tests[*]})"
 "$bazel" cquery "$selection" --output=files > "$CI_EVIDENCE/configured-files.txt"
-"$bazel" aquery "deps($selection)" --output=jsonproto > "$CI_EVIDENCE/configured-actions.json"
-python3 tools/bazel/ci_checks.py actions "$CI_EVIDENCE/configured-actions.json"
-"$bazel" build "${artifacts[@]}" --build_event_json_file="$CI_EVIDENCE/build.bep.json"
+# Raw action graphs and BEPs may record command lines and process environment.
+# Keep them in private job state; upload the gates' typed receipts instead.
+"$bazel" aquery "deps($selection)" --output=jsonproto > "$CI_STATE/configured-actions.json"
+python3 tools/bazel/ci_checks.py actions "$CI_STATE/configured-actions.json" --receipt "$CI_EVIDENCE/action-audit.json"
+"$bazel" build "${artifacts[@]}" --build_event_json_file="$CI_STATE/build.bep.json"
 mkdir -p "$CI_EVIDENCE/artifacts"
 for target in "${artifacts[@]}"; do
   name="${target//\//_}"; name="${name//:/_}"
@@ -76,7 +82,7 @@ for target in "${artifacts[@]}"; do
     cp "$output" "$CI_EVIDENCE/artifacts/$name/"
   done < "$CI_EVIDENCE/artifacts/$name/outputs.txt"
 done
-"$bazel" test "${tests[@]}" --nocache_test_results --test_output=all --build_event_json_file="$CI_EVIDENCE/test.bep.json"
-python3 tools/bazel/ci_checks.py tests bazel-testlogs
+"$bazel" test "${tests[@]}" --nocache_test_results --test_output=all --build_event_json_file="$CI_STATE/test.bep.json"
+python3 tools/bazel/ci_checks.py tests bazel-testlogs --receipt "$CI_EVIDENCE/test-audit.json"
 # Production dependency inputs are immutable; generated resolution is evidence.
 git diff --exit-code

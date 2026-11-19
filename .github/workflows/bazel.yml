@@ -44,6 +44,26 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: relay-amd64-${{ github.run_id }}-${{ github.run_attempt }}
-          path: ci-evidence/
+          # Explicit outputs only; raw BEPs/action graphs stay in CI_STATE.
+          path: |
+            ci-evidence/provenance.txt
+            ci-evidence/exit-code.txt
+            ci-evidence/SHA256SUMS
+            ci-evidence/driver.log
+            ci-evidence/ci.bazelrc
+            ci-evidence/module-graph.txt
+            ci-evidence/configured-files.txt
+            ci-evidence/action-audit.json
+            ci-evidence/test-audit.json
+            ci-evidence/MODULE.bazel.lock
+            ci-evidence/artifacts/__dhcp4relay_runtime/runtime_rttar.tar
+            ci-evidence/artifacts/__dhcp4relay_runtime.debug_symbols/runtime.debug_symbols.tar
+            ci-evidence/artifacts/___dhcp4_metadata/dhcp4_metadata.json
+            ci-evidence/artifacts/__dhcp6relay_runtime/runtime_rttar.tar
+            ci-evidence/artifacts/__dhcp6relay_runtime.debug_symbols/runtime.debug_symbols.tar
+            ci-evidence/artifacts/___dhcp6_metadata/dhcp6_metadata.json
+            ci-evidence/artifacts/*/outputs.txt
+            ci-evidence/bazel-testlogs/tests/runtime/*/test.xml
+            ci-evidence/bazel-testlogs/tests/runtime/*/test.log
           if-no-files-found: error
           retention-days: 14
