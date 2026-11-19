@@ -1,155 +1,73 @@
-# Experimental Bazel DHCP relay source build
+# Bazel DHCP relay source build
 
-This opt-in build owns DHCP4 and DHCP6 daemons, runtime/debug TARs, and focused
-and original-suite tests. Existing production sources, Make/package entry points,
-and gitlink revisions are retained. It does not produce DEBs or assemble an image.
+Bazel builds both DHCP relay daemons from source and exports runtime TARs,
+matching debug symbols, and package metadata. Existing Make/package entry points
+and gitlinks are retained. These Bazel targets do not generate DEBs.
 
-## Portable dependency contract
+## Dependencies
 
-Use Bazel 8.5.1 and the canonical registry/BCR endpoints in `.bazelrc`.
-`MODULE.bazel` requires published Common `.9-334389...` (including its published
-YANG runtime overlay), infra `.37-316e298...`, distroless `.20`, and libyang `.6`.
-There are no sibling-checkout overrides and no unused DHCP monitor dependency.
-The old experimental Common/infra linker-metadata adapter is deliberately not
-included: current distroless rewrites imported GNU linker scripts. This does not
-establish that every current shared-link/runtime boundary has passed validation.
+Use Bazel 8.5.1 and the SONiC registry/BCR endpoints in `.bazelrc`. The module
+consumes the published native `pcapplusplus@24.9.0.sonic.1` library. Its v24.09
+source archive and SONiC random-source-port patch are byte-identical to the Make
+inputs in `dhcp4relay`; downstream consumers need no private CMake build or
+m4/bison/flex override. The existing patch remains in its Make-owned directory.
 
-DHCP4 and its tests use the native `@pcapplusplus//:Pcap++` library from the
-published `pcapplusplus@24.9.0.sonic.1` module. It includes the SONiC
-random-source-port patch and links the locked Trixie libpcap SDK. Consumers
-can build the relay without configuring CMake or patching parser generators.
-The header-only gmock-global test dependency uses a verified immutable source
-archive at the exact existing gitlink commit `6552faa2a94250ed0192dbd62e608d37fafcc216`.
-This avoids requiring submodule contents omitted by GitHub source archives;
-the legacy gitlink is unchanged.
+The declared Infra `.39-81476192...` and Distroless `.21` consume the single
+shared production APT lock. The `dhcpmon_debian`, `dhcp_relay_test_debian`, and
+`trixie` collections supply target libraries and test runtime dependencies.
+There are no relay-local APT lockfiles or facts-mode resolver comparisons.
+Normal builds validate and read the shared lock without refreshing packages.
 
-## Bounded validation
+Common remains `.9-334389...`, with source-built libnl and libyang runtime
+outputs. The header-only gmock-global test input is fixed to the existing gitlink
+`6552faa2a94250ed0192dbd62e608d37fafcc216`; GitHub source archives do not contain
+submodule contents, so Bazel fetches that exact checksummed archive.
 
-Inspect configured outputs/actions before builds, including transitive edges;
-never use wildcard builds/tests without inspecting them. Successful configured-graph
-validation requires the owner-supported execution host platform
-`--host_platform=@sonic_build_infra//platforms:x86_64_trixie`, in addition to the
-target platform in `.bazelrc`. The default-host libyang execution-configuration
-selector failure remains unresolved; these results do not establish default-host
-success. Use this flag for configured queries, builds, and tests, as below:
+## Build and test
+
+Select both the execution and target platforms explicitly. The supported gate
+is Linux AMD64 with the Debian Trixie toolchain; ARM64 and live DHCP forwarding
+are separate validation scopes.
 
 ```sh
-bazel mod graph
-bazel cquery --host_platform=@sonic_build_infra//platforms:x86_64_trixie 'set(//dhcp6relay:sender_test //dhcp4relay:pcap_patch_test //dhcp4relay:runtime //dhcp6relay:runtime)' --output=files
-bazel aquery --host_platform=@sonic_build_infra//platforms:x86_64_trixie 'deps(set(//dhcp6relay:sender_test //dhcp4relay:pcap_patch_test //dhcp4relay:runtime //dhcp6relay:runtime))' --output=jsonproto
-bazel test --host_platform=@sonic_build_infra//platforms:x86_64_trixie --jobs=4 --local_resources=memory=8192 --nocache_test_results \
-  //dhcp6relay:sender_test //dhcp4relay:pcap_patch_test
-bazel build --host_platform=@sonic_build_infra//platforms:x86_64_trixie --jobs=4 --local_resources=memory=8192 \
+bazel mod graph --lockfile_mode=update
+bazel build --host_platform=@sonic_build_infra//platforms:x86_64_trixie \
   //dhcp4relay:runtime //dhcp4relay:runtime.debug_symbols \
-  //dhcp6relay:runtime //dhcp6relay:runtime.debug_symbols
+  //dhcp6relay:runtime //dhcp6relay:runtime.debug_symbols \
+  //:dhcp4_metadata //:dhcp6_metadata
+bazel test --host_platform=@sonic_build_infra//platforms:x86_64_trixie \
+  --nocache_test_results --test_output=all \
+  //tests/runtime:sender_test //tests/runtime:pcap_patch_test \
+  //tests/runtime:v4_full_suite_test //tests/runtime:v6_full_suite_test
 ```
 
-The C++ tests target Debian trixie and must execute with the declared target
-loader/libraries on a differing host. The full original suite runners
-`//tests/runtime:v4_full_suite_test` and `:v6_full_suite_test` extract declared APT
-and source TAR payloads and run in the digest-pinned Debian container without
-network, capabilities, privilege, or writable source mounts. Docker is an explicit
-local test prerequisite. Both runners first ask the target loader for its complete
-transitive dependency list for the relay ELF and reject missing libraries or
-successful fallback to container libraries outside `/rootfs`. This preflight does
-not audit Python/Redis ELF closure or modules loaded later with `dlopen`; those
-remain additional runtime-acceptance checks. The declared closure includes Common's
-source-built libnl core/route/nf TARs and libyang's owner-selected PCRE2/xxhash APT
-payload aliases; it does not change Common to static linkage. Boost thread/system
-payloads use the same already-declared development-package closure as compilation.
-No APT versions/checksums are hand-edited: the fresh-resolution gate below remains
-required, including libyang's `libyang_system` dependency set in its new receipt.
-`:v4_negative_control_test` is manual and expected to fail.
+The four runtime gates execute the existing C++ test binaries and all original
+assertions: 3 sender tests, 2 PcapPlusPlus regression tests, 62 DHCP4 tests, and
+47 DHCP6 tests. They use Infra's declared native runtime launcher, which checks
+ELF architecture and transitive `DT_NEEDED` providers before invoking the target
+loader. Docker, privileged containers, and host target libraries are unnecessary.
+The test-only socket seams preserve real kernel BPF checks while avoiding raw
+socket privileges. The manual `:v4_negative_control_test` must fail the original
+`bootp_pad` assertions and is excluded from normal passing test selections.
 
-The loader-output gate has bounded, Docker-free positive/missing/ambient controls:
+DHCP6 retains the source-owned `test/run_tests.py` fixture and launches a locked
+Redis executable through the shared ELF tool rule. Redis has a private temporary
+UNIX socket, no TCP listener or persistence, and is stopped on success/failure.
+The fixture and associated source changes originated in Guohan Lu's
+[PR #1](https://github.com/securely1g/sonic-dhcp-relay/pull/1); their attribution is
+preserved in the source history.
 
-```sh
-python3 -m unittest discover -s tests/runtime -p '*_test.py' -v
-```
+## Source CI
 
-These controls are not ELF execution. Native acceptance must additionally omit
-one measured `DT_NEEDED` provider from a fresh extracted runtime and observe a
-loader/preflight failure, then restore it and rerun both complete suites.
-The test-only seams remove raw-socket privilege requirements without replacing
-production source; kernel BPF checks remain real. These are unit-suite checks,
-not live forwarding or full dual-ToR acceptance.
+`.github/workflows/bazel.yml` runs on every PR and checks the actual head.
+`tools/bazel/ci.sh` audits the configured transitive actions for DEB producers
+before building the six artifact targets above. It executes all four gates
+without test-result caching, rejects skipped/disabled/missing test coverage,
+and uploads artifacts, configured actions, module resolution, and JUnit logs.
+CodeQL and Semgrep keep their existing independent workflows.
 
-### Private Redis prerequisite and attribution
-
-The fixture, environment-selected database configuration, dual-ToR scope guard,
-and README/regression tests are carried from Guohan Lu's existing
-[PR #1](https://github.com/securely1g/sonic-dhcp-relay/pull/1), head
-`fda21ae4a5d5aee9aee0968774c0c708c46b4df1`. Its Make-status propagation and Python/
-Redis test build dependencies are also retained so all four fixture regression
-tests have a coherent contract. The source commit credits that original author.
-The separate PR's Azure service/fixture changes are not duplicated here. If PR #1
-lands first, rebase and retain only the remaining Bazel/test-seam delta.
-
-```sh
-python3 -m unittest discover -s dhcp6relay/test -p run_tests_test.py -v
-```
-
-This suite needs an existing Redis executable (`REDIS_SERVER` may select a
-loader wrapper). It creates only private temporary sockets/configuration and
-verifies cleanup, failure propagation, and fresh state; it produces no DEBs.
-
-### Fresh APT acceptance gate
-
-`apt.lock.json` remains the frozen reviewed **acceptance contract** from the
-earlier facts-mode resolver (1122 packages, including `libnl_system` and
-`libyang_system`). The image and standalone relay compile against the shared locked Trixie
-SDK. The DHCP monitor collection provides libevent, the PI SDK provides Boost,
-and the shared Trixie collection provides the remaining runtime test tools.
-A separate development-only resolver
-checks the original build and test roots against the pinned Debian snapshots.
-The audit compares every resolved package, transitive dependency and source to
-the checked-in 193-package relay lock. The immutable snapshot URLs and all
-193 archive hashes match the original lock; the independent resolution no
-longer includes the unselected toolchain packages. Run it from a clean
-standalone checkout:
-
-```sh
-python3 tools/bazel/validate-apt-lock.py --evidence-dir /tmp/relay-apt-audit -- bazel
-```
-
-## Current readiness limits
-
-This is a Draft source candidate, not an integration/release claim. The earlier
-November 1 frozen candidate's tests do not establish this graph's results. Fresh
-private-Redis/Make tests and static checks are recorded in publication evidence;
-C++/runtime validation can remain blocked by pinned snapshot retrieval. AMD64
-current-graph source builds, matched symbols, full suites, installed image closure,
-ARM, live forwarding, and a complete legacy image build require separate receipts.
-No infrastructure adapter, Common PR45 duplicate, platform-common migration,
-monitor source, registry publication, or automatic CI policy change belongs here.
-
-## Source PR CI (AMD64)
-
-`.github/workflows/bazel.yml` runs for every PR, without path/Draft filters,
-checking out the actual head with a read-only token and no persisted credentials.
-It uses Ubuntu 24.04 AMD64, Python 3.12.3, checksummed Bazel 8.5.1 and the existing
-digest-pinned trixie test runtime. No secrets, shared caches, self-hosted runner,
-`pull_request_target`, new package generation, or repository-settings changes
-are required. CodeQL and Semgrep remain independent and unchanged.
-
-`tools/bazel/ci.sh` is the reproducible entry point. Set `BAZEL` to the verified
-binary, `CI_SOURCE_SHA` to `git rev-parse HEAD`, and `CI_STATE`/`CI_EVIDENCE` to new
-absolute directories. It explicitly selects the supported trixie host **and**
-target platforms, resolves/compares the APT contract afresh (never rewrites it),
-audits the configured transitive graph for DEB producers before execution,
-builds both runtime/debug TARs and both metadata targets, then executes all four
-runtime test targets with `--nocache_test_results`. Focused adapters execute the
-unchanged owner sender/classifier binaries with the same declared loader and
-capability-free, network-disabled, read-only Docker runtime as the original
-suites. XML must show at least 3/2/62/47 completed cases respectively, no skips
-or disabled cases; additions are allowed, silent coverage loss is not.
-
-CPU/action concurrency is bounded to two jobs, an 8 GiB scheduling budget and
-serial nested foreign builds. The artifact includes selected output files and
-checksums, source commit/tree, tool/config hashes, fresh resolution lock, module
-graph, configured actions, BEP and JUnit/test logs, including available failure
-receipts. No caches or environment/credential dumps are uploaded. An actual
-hosted pass (or an explicit maintainer fork-run approval) remains necessary;
-local command-equivalent validation alone is not a hosted-green claim. This
-workflow makes no ARM, default-host, native global-install bootstrap, image,
-or live-forwarding claim.
+For the same gate locally, set `BAZEL` to a verified 8.5.1 binary,
+`CI_SOURCE_SHA` to `git rev-parse HEAD`, and `CI_STATE`/`CI_EVIDENCE` to new
+absolute directories, then run `bash tools/bazel/ci.sh`. Build/test execution is
+bounded to two jobs and an 8 GiB scheduling budget. `MODULE.bazel.lock` is ignored
+generated evidence; the shared APT production lock remains authoritative.
