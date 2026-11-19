@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Force current APT resolution, then compare its output with reviewed selection.
 
-The canonical JSON is an acceptance contract, NOT a resolver input in facts mode.
+The build uses the shared SDK collections. A separate audit resolver uses only
+the dated sources and package requests, so this comparison detects drift.
 Use an idle checkout. Pass the configured Bazel launcher and flags after '--'.
 Existing generated lock evidence is retained in --evidence-dir before removal.
 """
@@ -12,10 +13,7 @@ import subprocess
 import time
 
 
-def compare(expected, actual):
-    for key in ('packages', 'dependency_sets', 'sources'):
-        if actual[key] != expected[key]:
-            raise ValueError('APT selection drift in ' + key)
+from relay_apt_audit import compare, resolved_graph
 
 
 def main():
@@ -47,15 +45,14 @@ def main():
         raise SystemExit('fresh resolution did not produce MODULE.bazel.lock')
     (evidence / 'MODULE.bazel.lock.fresh').write_bytes(lock.read_bytes())
     resolved = json.loads(lock.read_text())
-    extension = resolved['moduleExtensions']['@@rules_distroless+//apt:extensions.bzl%apt']['general']
-    actual = json.loads(extension['generatedRepoSpecs']['trixie']['attributes']['lock_content'])
+    actual = resolved_graph(resolved)
     (evidence / 'apt.resolved.json').write_text(json.dumps(actual, indent=2) + '\n')
     expected = json.loads((root / 'apt.lock.json').read_text())
     try:
         compare(expected, actual)
     except ValueError as exc:
         raise SystemExit(str(exc) + '; review the fresh receipt before intentionally updating the canonical contract')
-    print('Fresh APT resolution matches canonical contract:', len(expected['packages']), 'packages')
+    print('Fresh APT resolution matches canonical contract:', len(actual['packages']), 'packages')
 
 
 if __name__ == '__main__':

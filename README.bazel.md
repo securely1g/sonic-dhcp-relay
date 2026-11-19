@@ -14,13 +14,10 @@ The old experimental Common/infra linker-metadata adapter is deliberately not
 included: current distroless rewrites imported GNU linker scripts. This does not
 establish that every current shared-link/runtime boundary has passed validation.
 
-PcapPlusPlus v24.09 is built from its checksummed source archive using upstream
-CMake and the existing SONiC random-source-port patch. BCR libpcap `.bcr.4` and
-m4/bison/flex wrapper-header patches preserve gnulib header ordering under the
-selected GCC toolchain. These `single_version_override` patches are **root-only**:
-a downstream root must repeat the same parser-generator selections/patches until
-a reviewed registry/BCR solution replaces them. Do not silently drop them when
-registering this module. The patches do not substitute prebuilt project binaries.
+DHCP4 and its tests use the native `@pcapplusplus//:Pcap++` library from the
+published `pcapplusplus@24.9.0.sonic.1` module. It includes the SONiC
+random-source-port patch and links the locked Trixie libpcap SDK. Consumers
+can build the relay without configuring CMake or patching parser generators.
 The header-only gmock-global test dependency uses a verified immutable source
 archive at the exact existing gitlink commit `6552faa2a94250ed0192dbd62e608d37fafcc216`.
 This avoids requiring submodule contents omitted by GitHub source archives;
@@ -100,25 +97,20 @@ verifies cleanup, failure propagation, and fresh state; it produces no DEBs.
 
 `apt.lock.json` remains the frozen reviewed **acceptance contract** from the
 earlier facts-mode resolver (1122 packages, including `libnl_system` and
-`libyang_system`). The current graph imports the unified production lock from
-`@sonic_build_infra//apt:apt.lock.json`. Its published `trixie` dependency set
-does not yet record all relay requests, so fresh resolution stops at
-`libasan8 (= 14.2.0-19) [amd64]` before comparing the frozen contract. The
-shared lock needs a complete relay dependency set, and the retained package
-identities need reconciliation before this gate can use the unified format.
-Keep both checked-in lock files unchanged until that work is complete.
-Run the existing gate with:
+`libyang_system`). The image and standalone relay compile against the shared locked Trixie
+SDK. The DHCP monitor collection provides libevent, the PI SDK provides Boost,
+and the shared Trixie collection provides the remaining runtime test tools.
+A separate development-only resolver
+checks the original build and test roots against the pinned Debian snapshots.
+The audit compares every resolved package, transitive dependency and source to
+the checked-in 193-package relay lock. The immutable snapshot URLs and all
+193 archive hashes match the original lock; the independent resolution no
+longer includes the unselected toolchain packages. Run it from a clean
+standalone checkout:
 
 ```sh
-python3 tools/bazel/validate-apt-lock.py --evidence-dir <new-receipt-dir> -- <configured-bazel-launcher>
+python3 tools/bazel/validate-apt-lock.py --evidence-dir /tmp/relay-apt-audit -- bazel
 ```
-
-The launcher must accept `mod deps --lockfile_mode=update`. The gate preserves
-any previous generated lock, forces new resolution, and fails on resolver failure
-or package/source/dependency-set drift. Review the successful fresh result before
-updating the canonical contract; do not copy old resolution state as new evidence.
-The separate metadata APT extension imports `bazel_metadata/apt.lock.json` for
-metadata payload inputs while the shared dependency-set coverage is incomplete.
 
 ## Current readiness limits
 

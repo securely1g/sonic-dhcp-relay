@@ -21,9 +21,9 @@ cc_library(
     deps = [
         ":sender",
         "@sonic_swss_common//:libswsscommon_shared",
-        "@trixie//libevent-dev:libevent",
-        "@trixie//libboost-thread-dev:libboost-thread",
-        "@trixie//libboost-system-dev:libboost-system",
+        "@dhcpmon_debian//libevent-dev:libevent",
+        "@pi_deps//libboost-thread-dev:libboost-thread",
+        "@pi_deps//libboost-system-dev:libboost-system",
     ],
 )
 
@@ -76,9 +76,9 @@ cc_binary(
         "@com_google_googletest//:gtest",
         "@gmock_global_headers//:headers",
         "@sonic_swss_common//:libswsscommon_shared",
-        "@trixie//libevent-dev:libevent",
-        "@trixie//libboost-thread-dev:libboost-thread",
-        "@trixie//libboost-system-dev:libboost-system",
+        "@dhcpmon_debian//libevent-dev:libevent",
+        "@pi_deps//libboost-thread-dev:libboost-thread",
+        "@pi_deps//libboost-system-dev:libboost-system",
     ],
 )
 

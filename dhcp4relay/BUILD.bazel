@@ -10,11 +10,11 @@ cc_library(
     copts = ["-Wall", "-std=c++17", "-fPIE"],
     linkopts = ["-pthread"],
     deps = [
-        "@pcapplusplus//:pcapplusplus",
+        "@pcapplusplus//:Pcap++",
         "@sonic_swss_common//:libswsscommon_shared",
-        "@trixie//libevent-dev:libevent",
-        "@trixie//libboost-thread-dev:libboost-thread",
-        "@trixie//libboost-system-dev:libboost-system",
+        "@dhcpmon_debian//libevent-dev:libevent",
+        "@pi_deps//libboost-thread-dev:libboost-thread",
+        "@pi_deps//libboost-system-dev:libboost-system",
     ],
 )
 cc_binary(name = "dhcp4relay", srcs = ["src/main.cpp"], copts = ["-std=c++17", "-fPIE"], linkopts = ["-pie"], deps = [":relay"])
@@ -29,7 +29,7 @@ cc_test(
     name = "pcap_patch_test",
     srcs = ["test/pcap_patch_test.cpp"],
     copts = ["-std=c++17"],
-    deps = ["@pcapplusplus//:pcapplusplus", "@com_google_googletest//:gtest_main"],
+    deps = ["@pcapplusplus//:Pcap++", "@com_google_googletest//:gtest_main"],
 )
 
 # All twelve original test/subdir.mk translation units, plus the narrow socket
@@ -46,13 +46,13 @@ _SUITE_SRCS = [
 _SUITE_COPTS = ["-Wall", "-std=c++17", "-fPIE", "-DUNIT_TEST", "-DBAZEL_TEST_BUILD", "-fsanitize=address", "-fno-omit-frame-pointer"]
 _SUITE_LINKOPTS = ["-pthread", "-fsanitize=address", "-Wl,--wrap=socket", "-Wl,--wrap=bind", "-Wl,--wrap=close", "-Wl,--wrap=setsockopt"]
 _SUITE_DEPS = [
-        "@pcapplusplus//:pcapplusplus",
+        "@pcapplusplus//:Pcap++",
         "@com_google_googletest//:gtest",
         "@gmock_global_headers//:headers",
         "@sonic_swss_common//:libswsscommon_shared",
-        "@trixie//libevent-dev:libevent",
-        "@trixie//libboost-thread-dev:libboost-thread",
-        "@trixie//libboost-system-dev:libboost-system",
+        "@dhcpmon_debian//libevent-dev:libevent",
+        "@pi_deps//libboost-thread-dev:libboost-thread",
+        "@pi_deps//libboost-system-dev:libboost-system",
     ]
 
 cc_binary(
