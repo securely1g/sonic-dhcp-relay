@@ -39,6 +39,7 @@ bool encode_relay_option82(pcpp::DhcpLayer *dhcp_pkt, relay_config *config);
 void to_client(pcpp::DhcpLayer* dhcp_pkt, std::unordered_map<std::string, relay_config > *vlans,
                 std::string src_ip);
 void from_client(pcpp::DhcpLayer *dhcp_pkt, relay_config &config);
+extern DHCPCounter_table dhcp_cntr_table;
 
 ssize_t RealWrite(int fd, const void *buf, size_t count) {
     return syscall(SYS_write, fd, buf, count);
@@ -174,6 +175,24 @@ TEST(EncodeDecodeTLV, EncodeAndDecode) {
     EXPECT_EQ(decoded_value[0], 0x11);
     EXPECT_EQ(decoded_value[1], 0x22);
     EXPECT_EQ(decoded_value[2], 0x33);
+
+    uint8_t empty_buffer[2] = {};
+    encoded_length = encode_tlv(empty_buffer, OPTION82_SUBOPT_VIRTUAL_SUBNET_CONTROL,
+                                0, nullptr, sizeof(empty_buffer));
+    EXPECT_EQ(encoded_length, 2);
+    EXPECT_EQ(empty_buffer[0], OPTION82_SUBOPT_VIRTUAL_SUBNET_CONTROL);
+    EXPECT_EQ(empty_buffer[1], 0);
+
+    decoded_value = decode_tlv(empty_buffer, OPTION82_SUBOPT_VIRTUAL_SUBNET_CONTROL,
+                               length, sizeof(empty_buffer));
+    ASSERT_NE(decoded_value, nullptr);
+    EXPECT_EQ(length, 0);
+
+    uint8_t truncated_buffer[2] = {OPTION82_SUBOPT_VIRTUAL_SUBNET, 1};
+    decoded_value = decode_tlv(truncated_buffer, OPTION82_SUBOPT_VIRTUAL_SUBNET,
+                               length, sizeof(truncated_buffer));
+    EXPECT_EQ(decoded_value, nullptr);
+    EXPECT_EQ(length, 0);
 }
 
 /* A sub-option whose length runs one byte past options_total_size must be
@@ -285,6 +304,141 @@ TEST(addrIsPrimary, unknown_ip_returns_true) {
     EXPECT_TRUE(addr_is_primary("Vlan1000", &addr));
 
     testing_db::reset();
+}
+
+TEST(MuxState, explicit_standby_only) {
+    set_dual_tor_enabled(true);
+    update_mux_port_state({"Ethernet4", "standby", true});
+    EXPECT_TRUE(intf_is_standby("Ethernet4"));
+    EXPECT_FALSE(intf_is_standby("Ethernet8"));
+
+    update_mux_port_state({"Ethernet4", "active", true});
+    EXPECT_FALSE(intf_is_standby("Ethernet4"));
+
+    update_mux_port_state({"Ethernet4", "unknown", true});
+    EXPECT_FALSE(intf_is_standby("Ethernet4"));
+    EXPECT_FALSE(intf_is_standby("Ethernet8"));
+
+    update_mux_port_state({"Ethernet4", "", false});
+    EXPECT_FALSE(intf_is_standby("Ethernet4"));
+    set_dual_tor_enabled(false);
+}
+
+TEST(MuxState, standby_filter_requires_dualtor) {
+    update_mux_port_state({"Ethernet4", "standby", true});
+    set_dual_tor_enabled(false);
+    EXPECT_FALSE(intf_is_standby("Ethernet4"));
+
+    set_dual_tor_enabled(true);
+    EXPECT_TRUE(intf_is_standby("Ethernet4"));
+
+    set_dual_tor_enabled(false);
+    update_mux_port_state({"Ethernet4", "", false});
+}
+
+TEST(MuxState, manager_updates_main_thread_cache) {
+    ASSERT_TRUE(InitConfigPipeForTest());
+    EXPECT_GLOBAL_CALL(write, write(_, _, _))
+        .Times(3)
+        .WillRepeatedly(Invoke(RealWrite));
+
+    set_dual_tor_enabled(true);
+    DHCPMgr dhcp_mgr;
+    std::unordered_map<std::string, relay_config> vlans;
+    std::deque<swss::KeyOpFieldsValuesTuple> entries;
+
+    entries.emplace_back("Ethernet12", "SET",
+                         std::vector<swss::FieldValueTuple>{{"state", "standby"}});
+    dhcp_mgr.process_mux_cable_notification(entries);
+    config_event_callback(config_pipe[0], 0, &vlans);
+    EXPECT_TRUE(intf_is_standby("Ethernet12"));
+
+    entries.clear();
+    entries.emplace_back("Ethernet12", "SET",
+                         std::vector<swss::FieldValueTuple>{{"state", "active"}});
+    dhcp_mgr.process_mux_cable_notification(entries);
+    config_event_callback(config_pipe[0], 0, &vlans);
+    EXPECT_FALSE(intf_is_standby("Ethernet12"));
+
+    entries.clear();
+    entries.emplace_back("Ethernet12", "DEL", std::vector<swss::FieldValueTuple>{});
+    dhcp_mgr.process_mux_cable_notification(entries);
+    config_event_callback(config_pipe[0], 0, &vlans);
+    EXPECT_FALSE(intf_is_standby("Ethernet12"));
+    set_dual_tor_enabled(false);
+}
+
+TEST(MuxState, manager_ignores_set_without_state) {
+    ASSERT_TRUE(InitConfigPipeForTest());
+    EXPECT_GLOBAL_CALL(write, write(_, _, _))
+        .Times(0);
+
+    set_dual_tor_enabled(true);
+    DHCPMgr dhcp_mgr;
+    std::deque<swss::KeyOpFieldsValuesTuple> entries;
+    update_mux_port_state({"Ethernet16", "standby", true});
+    entries.emplace_back("Ethernet16", "SET",
+                         std::vector<swss::FieldValueTuple>{{"health", "healthy"}});
+    dhcp_mgr.process_mux_cable_notification(entries);
+    EXPECT_TRUE(intf_is_standby("Ethernet16"));
+    set_dual_tor_enabled(false);
+    update_mux_port_state({"Ethernet16", "", false});
+}
+
+TEST(MuxState, dual_tor_reenable_refreshes_cleared_cache) {
+    ASSERT_TRUE(InitConfigPipeForTest());
+    EXPECT_GLOBAL_CALL(write, write(_, _, _))
+        .Times(2)
+        .WillRepeatedly(Invoke(RealWrite));
+
+    auto mux_state_db = std::make_shared<swss::DBConnector>("STATE_DB", 0);
+    swss::Table mux_table(mux_state_db.get(), "HW_MUX_CABLE_TABLE");
+    mux_table.set("Ethernet24", {{"state", "standby"}});
+    update_mux_port_state({"Ethernet24", "standby", true});
+    std::unordered_map<std::string, relay_config> vlans;
+
+    event_config disable_event{
+        DHCPv4_RELAY_DUAL_TOR_UPDATE, new relay_config{}};
+    static_cast<relay_config *>(disable_event.msg)->is_add = false;
+    ASSERT_EQ(write(config_pipe[1], &disable_event, sizeof(disable_event)),
+              static_cast<ssize_t>(sizeof(disable_event)));
+    config_event_callback(config_pipe[0], 0, &vlans);
+    EXPECT_FALSE(intf_is_standby("Ethernet24"));
+
+    event_config enable_event{
+        DHCPv4_RELAY_DUAL_TOR_UPDATE, new relay_config{}};
+    static_cast<relay_config *>(enable_event.msg)->is_add = true;
+    ASSERT_EQ(write(config_pipe[1], &enable_event, sizeof(enable_event)),
+              static_cast<ssize_t>(sizeof(enable_event)));
+    config_event_callback(config_pipe[0], 0, &vlans);
+    EXPECT_TRUE(intf_is_standby("Ethernet24"));
+
+    set_dual_tor_enabled(false);
+    testing_db::reset();
+    refresh_mux_port_state();
+}
+
+TEST(MuxState, standby_request_has_no_forwarding_or_counter_side_effects) {
+    const std::string vlan = "VlanStandbyTest";
+    dhcp_cntr_table.initialize_interface(vlan);
+    auto counters_before = dhcp_cntr_table.get_counters_data().at(vlan);
+
+    pcpp::MacAddress client_mac("00:0e:86:11:c0:75");
+    pcpp::DhcpLayer dhcp_layer(pcpp::DHCP_DISCOVER, client_mac);
+    std::unordered_map<std::string, relay_config> vlans = {{vlan, relay_config{}}};
+    set_dual_tor_enabled(true);
+    update_mux_port_state({"Ethernet20", "standby", true});
+
+    EXPECT_GLOBAL_CALL(send_udp, send_udp(_, _, _, _, _, _, _)).Times(0);
+    process_client_packet(&dhcp_layer, "Ethernet20", vlan, 0, &vlans);
+
+    auto counters_after = dhcp_cntr_table.get_counters_data().at(vlan);
+    EXPECT_EQ(counters_after.RX, counters_before.RX);
+    EXPECT_EQ(counters_after.TX, counters_before.TX);
+
+    set_dual_tor_enabled(false);
+    update_mux_port_state({"Ethernet20", "", false});
+    dhcp_cntr_table.remove_interface(vlan);
 }
 
 TEST(prepareConfig, prepare_vlan_sockets) {
@@ -1139,6 +1293,51 @@ TEST(DHCPRelayTest, encode_relay_option82) {
     memcpy((vss_buf + 1), (uint8_t*)vlan_vrf_map["Vlan10"].c_str(), (uint8_t)vlan_vrf_map["Vlan10"].length());
 
     EXPECT_EQ(memcmp(vss_buf, vrf_ptr, 6), 0);
+
+    uint8_t vss_control_len = 1;
+    auto vss_control_ptr = decode_tlv((const uint8_t *)options_ptr,
+                                      OPTION82_SUBOPT_VIRTUAL_SUBNET_CONTROL,
+                                      vss_control_len, agent_option_size);
+    ASSERT_NE(vss_control_ptr, nullptr);
+    EXPECT_EQ(vss_control_len, 0);
+}
+
+TEST(DHCPRelayTest, source_interface_adds_link_selection_without_explicit_flag) {
+    interface_list.push_back("Ethernet12");
+    phy_interface_alias_map["Ethernet12"] = "eth12";
+    m_config.hostname = "sonic";
+    m_config.host_mac_addr = "12:32:54:24:95:36";
+    m_config.is_dualTor = false;
+
+    relay_config config = {};
+    config.phy_interface = "Ethernet12";
+    config.vlan = "Vlan10";
+    config.source_interface = "Loopback0";
+    config.src_intf_sel_addr.sin_addr.s_addr = inet_addr("10.1.0.32");
+    config.link_address.sin_addr.s_addr = inet_addr("192.168.10.10");
+
+    pcpp::MacAddress client_mac("00:0e:86:11:c0:75");
+    pcpp::DhcpLayer request(pcpp::DHCP_DISCOVER, client_mac);
+    ASSERT_TRUE(encode_relay_option82(&request, &config));
+
+    auto option82 = request.getOptionData(pcpp::DHCPOPT_DHCP_AGENT_OPTIONS);
+    ASSERT_NE(option82.getValue(), nullptr);
+    uint8_t length = 0;
+    auto value = decode_tlv((const uint8_t *)option82.getValue(),
+                            OPTION82_SUBOPT_LINK_SELECTION, length, option82.getDataSize());
+    ASSERT_NE(value, nullptr);
+    ASSERT_EQ(length, sizeof(uint32_t));
+    uint32_t link_address;
+    memcpy(&link_address, value, sizeof(link_address));
+    EXPECT_EQ(link_address, config.link_address.sin_addr.s_addr);
+
+    config.source_interface.clear();
+    pcpp::DhcpLayer default_request(pcpp::DHCP_DISCOVER, client_mac);
+    ASSERT_TRUE(encode_relay_option82(&default_request, &config));
+    auto default_option82 = default_request.getOptionData(pcpp::DHCPOPT_DHCP_AGENT_OPTIONS);
+    ASSERT_NE(default_option82.getValue(), nullptr);
+    EXPECT_EQ(decode_tlv((const uint8_t *)default_option82.getValue(),
+                         OPTION82_SUBOPT_LINK_SELECTION, length, default_option82.getDataSize()), nullptr);
 }
 
 TEST(DHCPRelayTest, encode_relay_option82_server_client_same_vrf) {
@@ -1217,6 +1416,75 @@ TEST(DHCPRelayTest, encode_relay_option82_server_client_same_vrf) {
                            vrf_len, agent_option_size);
 
     EXPECT_EQ((uintptr_t)vrf_ptr, NULL);
+
+    uint8_t vss_control_len = 0;
+    auto vss_control_ptr = decode_tlv((const uint8_t *)options_ptr,
+                                      OPTION82_SUBOPT_VIRTUAL_SUBNET_CONTROL,
+                                      vss_control_len, agent_option_size);
+    EXPECT_EQ((uintptr_t)vss_control_ptr, NULL);
+}
+
+template <size_t N>
+static uint32_t build_vss_reply_options(uint8_t (&options)[N],
+                                        const std::string &vrf,
+                                        bool include_vss,
+                                        bool include_vss_control) {
+    uint32_t offset = 0;
+    if (include_vss) {
+        uint8_t vss_data[OPTION82_VSS_VRF_MAX_LEN + 1] = {};
+        memcpy(vss_data + 1, vrf.data(), vrf.length());
+        offset += encode_tlv(options + offset, OPTION82_SUBOPT_VIRTUAL_SUBNET,
+                             static_cast<uint8_t>(vrf.length() + 1), vss_data,
+                             N - offset);
+    }
+    if (include_vss_control) {
+        offset += encode_tlv(options + offset, OPTION82_SUBOPT_VIRTUAL_SUBNET_CONTROL,
+                             0, nullptr, N - offset);
+    }
+    return offset;
+}
+
+TEST(DHCPRelayTest, validate_vss_reply) {
+    relay_config config = {};
+    config.vlan = "Vlan10";
+    config.vrf = "Vrf03";
+    config.vrf_selection_opt = "enable";
+    vlan_vrf_map["Vlan10"] = "Vrf01";
+
+    struct vss_case {
+        const char *vrf;
+        bool include_vss;
+        bool include_control;
+        bool valid;
+    };
+    const vss_case cases[] = {
+        {"Vrf01", true, false, true},
+        {"Vrf01", true, true, true},
+        {"Vrf02", true, false, false},
+        {"Vrf02", true, true, false},
+        {"Vrf01", false, false, false},
+        {"Vrf01", false, true, false},
+    };
+    for (const auto &test : cases) {
+        uint8_t options[32] = {};
+        auto size = build_vss_reply_options(
+            options, test.vrf, test.include_vss, test.include_control);
+        EXPECT_EQ(validate_vss_reply(options, size, config, "192.0.2.1"),
+                  test.valid);
+    }
+
+    uint8_t options[32] = {};
+    auto options_size = build_vss_reply_options(options, "Vrf01", true, false);
+    options[options_size++] = OPTION82_SUBOPT_VIRTUAL_SUBNET_CONTROL;
+    options[options_size++] = 1;
+    EXPECT_FALSE(validate_vss_reply(options, options_size, config, "192.0.2.1"));
+
+    EXPECT_FALSE(validate_vss_reply(nullptr, 0, config, "192.0.2.1"));
+
+    uint8_t circuit_id = 1;
+    options_size = encode_tlv(options, OPTION82_SUBOPT_CIRCUIT_ID, 1,
+                              &circuit_id, sizeof(options));
+    EXPECT_FALSE(validate_vss_reply(options, options_size, config, "192.0.2.1"));
 }
 
 static relay_config make_option_overflow_config(bool vss_required) {
@@ -1393,6 +1661,7 @@ TEST(DHCPRelayTest, to_client) {
     relay_config config = {};
     config.phy_interface = "Ethernet12";
     config.vlan = "Vlan10";
+    config.vrf = "Vrf01";
     config.link_selection_opt = "enable";
     config.server_id_override_opt = "enable";
     config.link_address.sin_addr.s_addr = inet_addr("192.168.10.10");
@@ -1421,6 +1690,45 @@ TEST(DHCPRelayTest, to_client) {
         return true;
     });
     to_client(&dhcpLayer, &vlans, "172.22.178.234");
+    FreeMockIfaddrs(mock_ifaddrs);
+}
+
+TEST(DHCPRelayTest, to_client_zero_giaddr_skips_interface_lookup) {
+    pcpp::MacAddress clientMac(std::string("00:0e:86:11:c0:75"));
+    pcpp::DhcpLayer dhcpLayer(pcpp::DHCP_OFFER, clientMac);
+    dhcpLayer.getDhcpHeader()->gatewayIpAddress = 0;
+    std::unordered_map<std::string, relay_config> vlans;
+
+    EXPECT_GLOBAL_CALL(getifaddrs, getifaddrs(_)).Times(0);
+    EXPECT_GLOBAL_CALL(freeifaddrs, freeifaddrs(_)).Times(0);
+    EXPECT_GLOBAL_CALL(send_udp, send_udp(_, _, _, _, _, _, _)).Times(0);
+    to_client(&dhcpLayer, &vlans, "172.22.178.234");
+}
+
+TEST(DHCPRelayTest, to_client_bootp_skips_vss_validation) {
+    pcpp::MacAddress clientMac(std::string("00:0e:86:11:c0:75"));
+    pcpp::DhcpLayer bootpLayer(pcpp::DHCP_OFFER, clientMac);
+    bootpLayer.getDhcpHeader()->magicNumber = 0;
+    bootpLayer.getDhcpHeader()->gatewayIpAddress = inet_addr("192.168.1.1");
+
+    relay_config config = {};
+    config.vlan = "Vlan10";
+    config.vrf = "Vrf02";
+    config.vrf_selection_opt = "enable";
+    config.client_sock = 1;
+    vlan_vrf_map["Vlan10"] = "Vrf01";
+    std::unordered_map<std::string, relay_config> vlans = {{"Vlan10", config}};
+
+    struct ifaddrs *mock_ifaddrs =
+        CreateMockIfaddrs("192.168.1.1", "255.255.255.0", "Vlan10",
+                          "192.168.1.2", "Ethernet4");
+    EXPECT_GLOBAL_CALL(getifaddrs, getifaddrs(_))
+        .WillOnce(DoAll(testing::SetArgPointee<0>(mock_ifaddrs), Return(0)));
+    EXPECT_GLOBAL_CALL(freeifaddrs, freeifaddrs(_)).Times(1);
+    EXPECT_GLOBAL_CALL(send_udp, send_udp(_, _, _, _, _, _, _))
+        .WillOnce(Return(true));
+
+    to_client(&bootpLayer, &vlans, "172.22.178.234");
     FreeMockIfaddrs(mock_ifaddrs);
 }
 
@@ -1510,13 +1818,13 @@ static relay_config make_from_client_giaddr_config(bool use_source_interface) {
     return config;
 }
 
-static void verify_from_client_giaddr(bool is_dhcp, bool use_source_interface,
+static void verify_from_client_giaddr(bool is_bootp, bool use_source_interface,
                                       const char *expected_giaddr) {
     pcpp::MacAddress clientMac(std::string("00:0e:86:11:c0:75"));
     pcpp::DhcpLayer dhcpLayer(pcpp::DHCP_DISCOVER, clientMac);
     dhcpLayer.getDhcpHeader()->gatewayIpAddress = 0;
     dhcpLayer.getDhcpHeader()->magicNumber =
-        is_dhcp ? DHCP_MAGIC_NUMBER : 0;
+        is_bootp ? 0 : DHCP_MAGIC_NUMBER;
 
     relay_config config = make_from_client_giaddr_config(use_source_interface);
     const uint32_t expected_giaddr_addr = inet_addr(expected_giaddr);
@@ -1534,27 +1842,27 @@ static void verify_from_client_giaddr(bool is_dhcp, bool use_source_interface,
 
     auto agent_option =
         dhcpLayer.getOptionData(pcpp::DHCPOPT_DHCP_AGENT_OPTIONS);
-    if (is_dhcp) {
-        EXPECT_NE(agent_option.getValue(), nullptr);
-    } else {
+    if (is_bootp) {
         EXPECT_EQ(agent_option.getValue(), nullptr);
+    } else {
+        EXPECT_NE(agent_option.getValue(), nullptr);
     }
 }
 
 TEST(DHCPRelayTest, from_client_single_tor_dhcp_uses_vlan_giaddr) {
-    verify_from_client_giaddr(true, false, "192.168.10.10");
-}
-
-TEST(DHCPRelayTest, from_client_single_tor_bootp_uses_vlan_giaddr) {
     verify_from_client_giaddr(false, false, "192.168.10.10");
 }
 
+TEST(DHCPRelayTest, from_client_single_tor_bootp_uses_vlan_giaddr) {
+    verify_from_client_giaddr(true, false, "192.168.10.10");
+}
+
 TEST(DHCPRelayTest, from_client_dual_tor_dhcp_uses_source_interface_giaddr) {
-    verify_from_client_giaddr(true, true, "10.1.0.32");
+    verify_from_client_giaddr(false, true, "10.1.0.32");
 }
 
 TEST(DHCPRelayTest, from_client_dual_tor_bootp_uses_vlan_giaddr) {
-    verify_from_client_giaddr(false, true, "192.168.10.10");
+    verify_from_client_giaddr(true, true, "192.168.10.10");
 }
 
 /* Helper: build a relay-of-relay packet (giaddr already set) with a pre-existing Option 82. */
@@ -1638,6 +1946,63 @@ TEST(DHCPRelayTest, from_client_relay_of_relay_forward) {
         return true;
     });
     from_client(&dhcpLayer, config);
+}
+
+TEST(DHCPRelayTest, from_client_relay_of_relay_forward_with_vss_forwards_unchanged) {
+    relay_config config = make_relay_of_relay_config("forward");
+
+    pcpp::MacAddress clientMac(std::string("00:0e:86:11:c0:75"));
+    pcpp::DhcpLayer dhcpLayer(pcpp::DHCP_DISCOVER, clientMac);
+    dhcpLayer.getDhcpHeader()->hops = 0;
+    dhcpLayer.getDhcpHeader()->gatewayIpAddress = inet_addr("192.168.1.1");
+    encode_relay_option82(&dhcpLayer, &config);
+    auto original_option =
+        dhcpLayer.getOptionData(pcpp::DHCPOPT_DHCP_AGENT_OPTIONS);
+    ASSERT_FALSE(original_option.isNull());
+    std::vector<uint8_t> original_option_data(
+        original_option.getValue(),
+        original_option.getValue() + original_option.getDataSize());
+
+    config.vrf_selection_opt = "enable";
+    config.vrf = "Vrf02";
+
+    EXPECT_GLOBAL_CALL(send_udp, send_udp(_, _, _, _, _, _, _))
+        .WillOnce(Return(true));
+    from_client(&dhcpLayer, config);
+
+    auto forwarded_option =
+        dhcpLayer.getOptionData(pcpp::DHCPOPT_DHCP_AGENT_OPTIONS);
+    ASSERT_EQ(forwarded_option.getDataSize(), original_option_data.size());
+    EXPECT_EQ(memcmp(forwarded_option.getValue(), original_option_data.data(),
+                     original_option_data.size()), 0);
+}
+
+TEST(DHCPRelayTest, from_client_first_hop_adds_vss_with_forward_configured) {
+    relay_config config = make_option_overflow_config(true);
+    config.agent_relay_mode = "forward";
+
+    pcpp::MacAddress clientMac(std::string("00:0e:86:11:c0:75"));
+    pcpp::DhcpLayer dhcpLayer(pcpp::DHCP_DISCOVER, clientMac);
+    dhcpLayer.getDhcpHeader()->gatewayIpAddress = 0;
+    dhcpLayer.getDhcpHeader()->magicNumber = DHCP_MAGIC_NUMBER;
+
+    EXPECT_GLOBAL_CALL(send_udp, send_udp(_, _, _, _, _, _, _))
+        .WillOnce(Return(true));
+    from_client(&dhcpLayer, config);
+
+    auto relay_option =
+        dhcpLayer.getOptionData(pcpp::DHCPOPT_DHCP_AGENT_OPTIONS);
+    ASSERT_FALSE(relay_option.isNull());
+
+    uint8_t vss_len = 0;
+    EXPECT_NE(decode_tlv(relay_option.getValue(),
+                         OPTION82_SUBOPT_VIRTUAL_SUBNET, vss_len,
+                         relay_option.getDataSize()), nullptr);
+    uint8_t control_len = 1;
+    EXPECT_NE(decode_tlv(relay_option.getValue(),
+                         OPTION82_SUBOPT_VIRTUAL_SUBNET_CONTROL, control_len,
+                         relay_option.getDataSize()), nullptr);
+    EXPECT_EQ(control_len, 0);
 }
 
 /* agent_relay_mode=discard: packet must be dropped, send_udp must NOT be called. */
