@@ -41,6 +41,8 @@ bazel test --host_platform=@sonic_build_infra//platforms:x86_64_trixie \
   //tests/runtime:v4_full_suite_test //tests/runtime:v6_full_suite_test
 ```
 
+Install the CI report parser with `python3 -m pip install --require-hashes -r tools/bazel/requirements-ci.txt` before running the validation script.
+
 The four runtime gates execute the existing C++ test binaries and all original
 assertions: 3 sender tests, 2 PcapPlusPlus regression tests, 62 DHCP4 tests, and
 47 DHCP6 tests. They use Infra's declared native runtime launcher, which checks

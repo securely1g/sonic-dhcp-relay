@@ -9,6 +9,8 @@ import tempfile
 import unittest
 import xml.etree.ElementTree as ET
 
+from defusedxml.ElementTree import parse
+
 from ci_checks import MINIMUM_CASES, audit_actions, audit_tests, main
 
 
@@ -51,7 +53,7 @@ class CIGatesTest(unittest.TestCase):
                 'total': 114, 'skipped': 0,
             })
             path = root / 'tests/runtime/sender_test/test.xml'
-            tree = ET.parse(path)
+            tree = parse(path)
             ET.SubElement(tree.getroot()[0], 'skipped')
             tree.write(path)
             with self.assertRaises(ValueError):
