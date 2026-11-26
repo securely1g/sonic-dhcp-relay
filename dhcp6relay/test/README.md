@@ -9,6 +9,7 @@ Coverage reports are generated even when GoogleTests fail, and either test or
 coverage failures make the target fail. The Debian package build therefore
 cannot report success after failing tests.
 
+The Bazel DHCPv6 suite uses the same private Redis fixture.
 The fixture supplies `DHCP6RELAY_TEST_DATABASE_CONFIG` to the test process. Running
 the test binary directly without that variable retains the existing
 `./test/database_config.json` behavior.
